@@ -1,0 +1,15 @@
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.EntityFrameworkCore;
+global using AutoMapper;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos;
+global using FluentValidation;
+global using Sterling.NIPOutwardService.Domain.Config.Interfaces;
+global using MongoDB.Bson;
+global using MongoDB.Bson.Serialization.Attributes;
+global using System.ComponentModel.DataAnnotations.Schema;
+global using System.ComponentModel.DataAnnotations;
+global using Sterling.NIPOutwardService.Domain.Entities;
+global using Sterling.NIPOutwardService.Domain.Common;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.VTeller;
+global using Confluent.Kafka;
