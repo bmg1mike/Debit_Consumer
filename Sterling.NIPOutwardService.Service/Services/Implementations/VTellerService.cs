@@ -26,7 +26,6 @@ public class VTellerService : IVtellerService
     public string Vat_Rsp;
 
     public string ResponseMsg;
-    private readonly AppSettings AppSettings;
 
     public decimal NIPfee;
     public decimal NIPvat;
@@ -109,11 +108,11 @@ public class VTellerService : IVtellerService
         //to enusre USSD fees for NIP goes into a separate account PL52259
         // while sterling momey, sterling one and IBS goes into another. PL52340 ,
         // PL for NIP_PL_ACCT_CIB
-        string NIP_PL_ACCT_USSD = AppSettings.NIP_PL_ACCT_USSD;
-        string NIP_PL_ACCT_OTHERS = AppSettings.NIP_PL_ACCT_OTHERS;
-        string NIP_PL_ACCT_CIB = AppSettings.NIP_PL_ACCT_CIB;
-        string NIP_PL_ACCT_WHATSAPP = AppSettings.NIP_PL_ACCT_WHATSAPP;
-        string NIP_PL_ACCT_CHATPAY = AppSettings.NIP_PL_ACCT_CHATPAY;
+        string NIP_PL_ACCT_USSD = appSettings.NIP_PL_ACCT_USSD;
+        string NIP_PL_ACCT_OTHERS = appSettings.NIP_PL_ACCT_OTHERS;
+        string NIP_PL_ACCT_CIB = appSettings.NIP_PL_ACCT_CIB;
+        string NIP_PL_ACCT_WHATSAPP = appSettings.NIP_PL_ACCT_WHATSAPP;
+        string NIP_PL_ACCT_CHATPAY = appSettings.NIP_PL_ACCT_CHATPAY;
        
         if (foundval)
         {
@@ -277,7 +276,7 @@ public class VTellerService : IVtellerService
         if (t.inCust.bra_code == "NG0020556")
         {
             //read the switchfee from config file
-            decimal SWITCHNIPFEE = AppSettings.SWITCHNIPFEE;
+            decimal SWITCHNIPFEE = appSettings.SWITCHNIPFEE;
             //compute the VAT (5% of NIP fee) 
             decimal computedVat = decimal.Parse("0.05") * SWITCHNIPFEE;
             //assign the new fee for fee and vat
@@ -288,7 +287,7 @@ public class VTellerService : IVtellerService
         //CHECK IF THE APPID IS FOR FLUTTERWAVE (56), ZDVANCE (99), kUDI.ai (1112)
         if (t.Appid == 56) //flutterwave
         {
-            decimal FLUTTERWAVE_FEE = AppSettings.FLUTTERWAVE_FEE;
+            decimal FLUTTERWAVE_FEE = appSettings.FLUTTERWAVE_FEE;
             //compute the VAT (5% of NIP fee) 
             decimal computedVat = decimal.Parse("0.05") * FLUTTERWAVE_FEE;
             //assign the new fee for fee and vat
@@ -298,7 +297,7 @@ public class VTellerService : IVtellerService
         }
         else if (t.Appid == 99) //zdvance
         {
-            decimal ZDVANCE_FEE = AppSettings.ZDVANCE_FEE;
+            decimal ZDVANCE_FEE = appSettings.ZDVANCE_FEE;
             //compute the VAT (5% of NIP fee) 
             decimal computedVat = decimal.Parse("0.05") * ZDVANCE_FEE;
             //assign the new fee for fee and vat
@@ -308,7 +307,7 @@ public class VTellerService : IVtellerService
         }
         else if (t.Appid == 1112) //Kudi.ai
         {
-            decimal KUDI_FEE = AppSettings.KUDI_FEE;
+            decimal KUDI_FEE = appSettings.KUDI_FEE;
             //compute the VAT (5% of NIP fee) 
             decimal computedVat = decimal.Parse("0.05") * KUDI_FEE;
             //assign the new fee for fee and vat
