@@ -28,10 +28,11 @@ global using Sterling.NIPOutwardService.Data.Repositories.Interfaces.Transaction
 global using Sterling.NIPOutwardService.Domain.Entities.TransactionAmountLimits;
 global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.VTeller;
 global using Confluent.Kafka;
-global using SolTechnology.Avro;
 global using Sterling.NIPOutwardService.Service.Services.Interfaces.Kafka;
 global using Polly.Extensions.Http;
 global using Sterling.NIPOutwardService.Service.Services.Implementations.Kafka;
 global using Sterling.NIPOutwardService.Service.Services.Implementations.NIPOutwardLookup;
+global using NameEnquiry;
+global using Sterling.NIPOutwardService.Data.Helpers.Interfaces;
 
 

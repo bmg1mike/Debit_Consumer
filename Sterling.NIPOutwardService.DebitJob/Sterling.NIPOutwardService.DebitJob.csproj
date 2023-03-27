@@ -9,7 +9,10 @@
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="Confluent.Kafka" Version="2.0.2" />
-    <PackageReference Include="AvroConvert" Version="3.3.4" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="4.2.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="3.3.0" />
+    <PackageReference Include="Serilog.Sinks.MongoDB" Version="5.1.2" />
   </ItemGroup>
 
    <ItemGroup>

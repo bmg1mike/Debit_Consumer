@@ -131,7 +131,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
         outboundLog.RequestDetails = $@"Raw Request: Maxperday: {Maxperday}, transactionAmount: {transactionAmount}, debitAccountNumber: {debitAccountNumber}";
 
         var res = new TotalTransactionDonePerDay { TransactionOk = false };
-        string sql = "select ISNULL(SUM(amount),0) as totalTOday,ISNULL(count(amount),0) as count from tbl_NIPOutwardTransactions " +
+        string sql = "select ISNULL(SUM(amount),0) as totalTOday,ISNULL(count(amount),0) as count from tbl_NIPOutwardTransactions with (nolock) " +
             " where DebitAccountNumber =@DebitAccountNumber" +
             " and CONVERT(Varchar(20), dateadded,102) = CONVERT(Varchar(20), GETDATE(),102) and vTellerMsg=1 and FundsTransferResponse='00'";
         using (SqlConnection connection = new SqlConnection(appSettings.SqlServerDbConnectionString))

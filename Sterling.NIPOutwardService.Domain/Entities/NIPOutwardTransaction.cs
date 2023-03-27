@@ -8,7 +8,7 @@ public class NIPOutwardTransaction
     public string SessionID { get; set; }
     public string NameEnquirySessionID { get; set; }
     public string TransactionCode { get; set; }
-    public int ChannelCode { get; set; }
+    public byte ChannelCode { get; set; }
     public string PaymentReference { get; set; }
     public decimal Amount { get; set; }
     public string CreditAccountName { get; set; }
@@ -22,11 +22,11 @@ public class NIPOutwardTransaction
     public string FundsTransferResponse { get; set; }
     public DateTime? DateAdded { get; set; }
     public string DebitRequeryStatus { get; set; }
-    public string NipRequeryStatus { get; set; }
+    public string NIBSSRequeryStatus { get; set; }
     public string NameResponse { get; set; }
     public DateTime? LastUpdate { get; set; }
     public string ReversalStatus { get; set; }
-    public int VTellerMsg { get; set; }
+    public byte DebitResponse { get; set; }
     public int FTAdvice { get; set; }
     public DateTime? FTAdviceDate { get; set; }
     public string DebitAccountNumber { get; set; }
@@ -50,6 +50,7 @@ public class NIPOutwardTransaction
     public DateTime? VtellerResponseTime { get; set; }
     public string KafkaStatus { get; set; }
     public int PriorityLevel { get; set; }
+    public string NIBSSResponse { get; set; }
     
 }
 

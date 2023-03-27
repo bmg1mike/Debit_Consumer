@@ -9,7 +9,8 @@ public static class DependencyInjection
         services.AddScoped<IInboundLogService, InboundLogService>();
         services.AddScoped<IFraudAnalyticsService, FraudAnalyticsService>();
         services.AddScoped<INIPOutwardDebitLookupService, NIPOutwardDebitLookupService>();
-        services.AddScoped<INIPOutwardDebitService, NIPOutwardDebitService>();
+        services.AddScoped<INIPOutwardSendToNIBSSProducerService, NIPOutwardSendToNIBSSProducerService>();
+        services.AddScoped<INIPOutwardDebitProcessorService, NIPOutwardDebitProcessorService>();
         services.AddScoped<INIPOutwardTransactionService, NIPOutwardTransactionService>();
         services.AddScoped<ITransactionAmountLimitService, TransactionAmountLimitService>();
         services.AddScoped<IVtellerService, VTellerService>();
@@ -48,12 +49,13 @@ public static class DependencyInjection
         // ClientConfig? clientConfig = new ClientConfig();
         // clientConfig.BootstrapServers = configuration.GetSection("AppSettings:KafkaProducerConfig:BootstrapServers").Value;
         services.AddScoped<INIPOutwardDebitProducerService, NIPOutwardDebitProducerService>();
+        services.AddScoped<INIPOutwardDebitService, NIPOutwardDebitService>();
         ClientConfig kafkaConfig = configuration
         .GetSection("KafkaDebitProducerConfig:ClientConfig")
         .Get<ClientConfig>();
 
-        services.AddSingleton<IProducer<Null, byte[]>> 
-        (x => new ProducerBuilder<Null, byte[]>(kafkaConfig).Build()) ;
+        services.AddSingleton<IProducer<Null, string>> 
+        (x => new ProducerBuilder<Null, string>(kafkaConfig).Build()) ;
 
         var kafkaDebitProducerConfig = configuration.GetSection("KafkaDebitProducerConfig");
         services.Configure<KafkaDebitProducerConfig>(kafkaDebitProducerConfig);
@@ -64,17 +66,33 @@ public static class DependencyInjection
     public static IServiceCollection AddDebitConsumerServiceDependencies(this IServiceCollection services, IConfiguration configuration)
     {        
         ConsumerConfig kafkaConfig = configuration
-        .GetSection("KafkaDebitConsumerConfig:ClientConfig")
+        .GetSection("KafkaDebitConsumerConfig:ConsumerConfig")
         .Get<ConsumerConfig>();
         kafkaConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
 
-        services.AddSingleton<IConsumer<Ignore, byte[]>> 
-        (x => new ConsumerBuilder<Ignore, byte[]>(kafkaConfig).Build()) ;
+        services.AddSingleton<IConsumer<Ignore, string>> 
+        (x => new ConsumerBuilder<Ignore, string>(kafkaConfig).Build()) ;
 
         var kafkaDebitConsumerConfig = configuration.GetSection("KafkaDebitConsumerConfig");
         services.Configure<KafkaDebitConsumerConfig>(kafkaDebitConsumerConfig);
 
-        services.AddScoped<NIPOutwardDebitService>();
+        services.AddScoped<NIPOutwardDebitProcessorService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddSendToNIBBSProducerServiceDependencies(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<INIPOutwardSendToNIBSSProducerService, NIPOutwardSendToNIBSSProducerService>();
+        ClientConfig kafkaConfig = configuration
+        .GetSection("KafkaSendToNIBSSProducerConfig:ClientConfig")
+        .Get<ClientConfig>();
+
+        services.AddSingleton<IProducer<Null, string>> 
+        (x => new ProducerBuilder<Null, string>(kafkaConfig).Build()) ;
+
+        var kafkaSendToNIBSSProducerConfig = configuration.GetSection("KafkaSendToNIBSSProducerConfig");
+        services.Configure<KafkaSendToNIBSSProducerConfig>(kafkaSendToNIBSSProducerConfig);
 
         return services;
     }

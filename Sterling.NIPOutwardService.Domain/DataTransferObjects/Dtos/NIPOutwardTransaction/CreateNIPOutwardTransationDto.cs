@@ -7,7 +7,7 @@ public class CreateNIPOutwardTransactionDto
 {
     public string NameEnquirySessionID { get; set; }
     public string TransactionCode { get; set; }
-    public int ChannelCode { get; set; }
+    public byte ChannelCode { get; set; }
     public string PaymentReference { get; set; }
     public decimal Amount { get; set; }
     public string CreditAccountName { get; set; }

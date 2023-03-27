@@ -6,12 +6,9 @@ namespace Sterling.NIPOutwardService.API.Controllers.v1;
 public partial class NIPOutwardTransactionController : BaseController 
 {
     private readonly INIPOutwardDebitService nipOutwardDebitService;
-    private readonly INIPOutwardDebitProducerService nipOutwardDebitProducerService;
-    public NIPOutwardTransactionController(INIPOutwardDebitService nipOutwardDebitService, 
-    INIPOutwardDebitProducerService nipOutwardDebitProducerService)
+    public NIPOutwardTransactionController(INIPOutwardDebitService nipOutwardDebitService)
     {
         this.nipOutwardDebitService = nipOutwardDebitService;
-        this.nipOutwardDebitProducerService = nipOutwardDebitProducerService;
     }
     [HttpPost]
     [Route("FundsTransfer")]
@@ -20,14 +17,18 @@ public partial class NIPOutwardTransactionController : BaseController
         var result = new Result<string>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
         var response = new Result<string>();
+        
+        response =  await nipOutwardDebitService.ProcessTransaction(request);
 
-        if(request.PriorityLevel == 1)
-            response =  await nipOutwardDebitService.ProcessTransaction(request);
-        else
-            response = await nipOutwardDebitProducerService.PublishTransaction(request);
+        if(!response.IsSuccess)
+        {
+            response.ErrorMessage = response.Message;
+        }
+        response.Content = string.Empty;
 
         result = response;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
+        result.PaymentReference = request.PaymentReference;
         return Ok(result);
     }
 

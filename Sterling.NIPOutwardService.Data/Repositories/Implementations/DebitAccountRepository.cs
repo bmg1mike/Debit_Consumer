@@ -31,70 +31,70 @@ public class DebitAccountRepository : IDebitAccountRepository
     public async Task<DebitAccountDetails> GetDebitAccountDetails(string AccountNumber)
     {
         //
-        DebitAccountDetails? accountDetails = new DebitAccountDetails
-        {
-            T24_LED_CODE = "1006",
-            UsableBalance = 100000,
-            Email = "goz@gmail.com",
-            CustomerStatusCode = 6,
-            T24_BRA_CODE = "NG0020006"
-        };
-
-        return accountDetails;
-        //
-        // DebitAccountDetails? accountDetails = new();
-        // using (OracleConnection connection = new(appSettings.T24DbConnectionString))
+        // DebitAccountDetails? accountDetails = new DebitAccountDetails
         // {
-        //     using (OracleCommand cmd = connection.CreateCommand())
-        //     {
-                
-        //         try
-        //         {
-        //             cmd.CommandType = CommandType.Text;
-        //             cmd.CommandText = @"DECLARE PACCT VARCHAR2(200); PREFCUR SYS_REFCURSOR; BEGIN PACCT := :pAcct;
-        //             STAFJ.GET_FULL_ACCOUNT_INFO(PACCT => PACCT,PREFCUR => PREFCUR);:PREFCUR:= PREFCUR;END;";
-        //             cmd.Parameters.Add(":pACCT", OracleDbType.Varchar2).Value = AccountNumber;
-        //             cmd.Parameters.Add(":PREFCUR", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
-                    
-        //             await retryPolicy.ExecuteAsync(async () =>
-        //             {
-        //                 await connection.OpenAsync();
-        //                 OracleDataReader dr = cmd.ExecuteReader();
-        //                 if (dr.HasRows)
-        //                 {
-        //                     while (dr.Read())
-        //                     {
-                                
-        //                         accountDetails.T24_LED_CODE = dr["ACCOUNTCATEGORY"].ToString();
-        //                         accountDetails.UsableBal = Convert.ToDecimal(dr["USABLE_BALANCE"].ToString());
-        //                         accountDetails.Email = dr["EMAIL"].ToString();
-        //                         int customerStatusCode;
-        //                         bool isValidInt = int.TryParse(dr["CUSTOMER_STATUS"].ToString(), out customerStatusCode);
-        //                         accountDetails.CustomerStatusCode = isValidInt ? customerStatusCode : 2;
-        //                         accountDetails.T24_BRA_CODE = dr["BRA_CODE"].ToString();
-                            
-        //                     }
-        //                     // _logger.LogInformation($"Successfully fetched account details for number {AccountNumber} with response {JsonSerializer.Serialize(getAccountFullInfo)}");                        
-        //                 }
-        //                     else
-        //                 {
-        //                     accountDetails = null;
-        //                         //getAccountFullInfo.BankAccountFullInfo.NUBAN = "No details for account number";                            
-        //                         //_logger.LogInformation($"No account details found with account number {AccountNumber} with response {JsonSerializer.Serialize(getAccountFullInfo)}");                        
-        //                 }
-        //             });
-                    
-        //         }
-        //         catch (Exception ex)
-        //         {
-        //             accountDetails = null;
-        //             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-        //             "\r\n" + $@"Account number: {AccountNumber} Exception Details: {ex.Message} {ex.StackTrace}";
-        //         }
-                            
-        //     }
-        // }
+        //     T24_LED_CODE = "1006",
+        //     UsableBalance = 100000,
+        //     Email = "goz@gmail.com",
+        //     CustomerStatusCode = 6,
+        //     T24_BRA_CODE = "NG0020006"
+        // };
+
         // return accountDetails;
+        //
+        DebitAccountDetails? accountDetails = new();
+        using (OracleConnection connection = new(appSettings.T24DbConnectionString))
+        {
+            using (OracleCommand cmd = connection.CreateCommand())
+            {
+                
+                try
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.CommandText = @"DECLARE PACCT VARCHAR2(200); PREFCUR SYS_REFCURSOR; BEGIN PACCT := :pAcct;
+                    STAFJ.GET_FULL_ACCOUNT_INFO(PACCT => PACCT,PREFCUR => PREFCUR);:PREFCUR:= PREFCUR;END;";
+                    cmd.Parameters.Add(":pACCT", OracleDbType.Varchar2).Value = AccountNumber;
+                    cmd.Parameters.Add(":PREFCUR", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
+                    
+                    await retryPolicy.ExecuteAsync(async () =>
+                    {
+                        await connection.OpenAsync();
+                        OracleDataReader dr = cmd.ExecuteReader();
+                        if (dr.HasRows)
+                        {
+                            while (dr.Read())
+                            {
+                                
+                                accountDetails.T24_LED_CODE = dr["ACCOUNTCATEGORY"].ToString();
+                                accountDetails.UsableBalance = Convert.ToDecimal(dr["USABLE_BALANCE"].ToString());
+                                accountDetails.Email = dr["EMAIL"].ToString();
+                                int customerStatusCode;
+                                bool isValidInt = int.TryParse(dr["CUSTOMER_STATUS"].ToString(), out customerStatusCode);
+                                accountDetails.CustomerStatusCode = isValidInt ? customerStatusCode : 2;
+                                accountDetails.T24_BRA_CODE = dr["BRA_CODE"].ToString();
+                            
+                            }
+                            // _logger.LogInformation($"Successfully fetched account details for number {AccountNumber} with response {JsonSerializer.Serialize(getAccountFullInfo)}");                        
+                        }
+                            else
+                        {
+                            accountDetails = null;
+                                //getAccountFullInfo.BankAccountFullInfo.NUBAN = "No details for account number";                            
+                                //_logger.LogInformation($"No account details found with account number {AccountNumber} with response {JsonSerializer.Serialize(getAccountFullInfo)}");                        
+                        }
+                    });
+                    
+                }
+                catch (Exception ex)
+                {
+                    accountDetails = null;
+                    outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+                    "\r\n" + $@"Account number: {AccountNumber} Exception Details: {ex.Message} {ex.StackTrace}";
+                }
+                            
+            }
+        }
+        return accountDetails;
     }
 
     public OutboundLog GetOutboundLog()

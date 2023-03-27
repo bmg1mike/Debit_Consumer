@@ -1,20 +1,19 @@
 namespace Sterling.NIPOutwardService.Service.Services.Implementations.Kafka;
 
-public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
+
+public class NIPOutwardSendToNIBSSProducerService : INIPOutwardSendToNIBSSProducerService
 {
     public readonly IProducer<Null, string> producer;
     public readonly AppSettings appSettings;
-    public readonly KafkaDebitProducerConfig kafkaDebitProducerConfig;
-    public readonly INIPOutwardDebitProcessorService nipOutwardDebitService;
+    public readonly KafkaSendToNIBSSProducerConfig kafkaSendToNIBSSProducerConfig;
     private OutboundLog outboundLog;
 
-    public NIPOutwardDebitProducerService(IProducer<Null, string> producer, IOptions<AppSettings> appSettings,
-        IOptions<KafkaDebitProducerConfig> kafkaDebitProducerConfig, INIPOutwardDebitProcessorService nipOutwardDebitService)
+    public NIPOutwardSendToNIBSSProducerService(IProducer<Null, string> producer, IOptions<AppSettings> appSettings,
+        IOptions<KafkaSendToNIBSSProducerConfig> kafkaSendToNIBSSProducerConfig)
     {
         this.producer = producer;
         this.appSettings = appSettings.Value;
-        this.kafkaDebitProducerConfig = kafkaDebitProducerConfig.Value;
-        this.nipOutwardDebitService = nipOutwardDebitService;
+        this.kafkaSendToNIBSSProducerConfig = kafkaSendToNIBSSProducerConfig.Value;
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
 
@@ -45,7 +44,7 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
     }
 
     public async Task ProduceAsync (NIPOutwardTransaction request) =>
-        await producer.ProduceAsync(kafkaDebitProducerConfig.OutwardDebitTopic, new Message<Null, string> 
+        await producer.ProduceAsync(kafkaSendToNIBSSProducerConfig.OutwardSendToNIBSSTopic, new Message<Null, string> 
         {
             Value = JsonConvert.SerializeObject(request),
         });

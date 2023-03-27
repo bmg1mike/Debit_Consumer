@@ -1,6 +1,3 @@
-
-using Sterling.NIPOutwardService.Domain.Config.Implementations;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -84,6 +81,7 @@ builder.Services.AddCors(p => p.AddPolicy("corsapp", builder =>
 builder.Services.AddDataDependencies(builder.Configuration);
 builder.Services.AddServiceDependencies(builder.Configuration);
 builder.Services.AddDebitProducerServiceDependencies(builder.Configuration);
+builder.Services.AddSendToNIBBSProducerServiceDependencies(builder.Configuration);
 
 builder.Services.AddApiVersioning(x =>  
             {  

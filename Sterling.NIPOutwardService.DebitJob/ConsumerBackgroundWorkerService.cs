@@ -1,22 +1,21 @@
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using Sterling.NIPOutwardService.Service.Services.Implementations;
+using System.Collections.Concurrent;
+using Sterling.NIPOutwardService.Domain.Entities;
 
 namespace Sterling.NIPOutwardService.DebitJob;
 public class ConsumerBackgroundWorkerService : BackgroundService
 {
-    //public readonly INIPOutwardDebitService nipOutwardDebitService;
-    public readonly IConsumer<Ignore, byte[]> consumer;
+    public readonly IConsumer<Ignore, string> consumer;
     public readonly KafkaDebitConsumerConfig kafkaDebitConsumerConfig;
     public readonly IServiceProvider serviceProvider;
-    public ConsumerBackgroundWorkerService(//INIPOutwardDebitService nipOutwardDebitService, 
-    IConsumer<Ignore, byte[]> consumer, IOptions<KafkaDebitConsumerConfig> kafkaDebitConsumerConfig,
-    IServiceProvider serviceProvider)
+    private readonly Serilog.ILogger logger;
+    public ConsumerBackgroundWorkerService(IConsumer<Ignore, string> consumer, 
+    IOptions<KafkaDebitConsumerConfig> kafkaDebitConsumerConfig,
+    IServiceProvider serviceProvider, Serilog.ILogger logger)
     {
-        //this.nipOutwardDebitService = nipOutwardDebitService;
         this.consumer = consumer;
         this.kafkaDebitConsumerConfig = kafkaDebitConsumerConfig.Value;
         this.serviceProvider = serviceProvider;
+        this.logger = logger;
     }
     protected async override Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -26,22 +25,44 @@ public class ConsumerBackgroundWorkerService : BackgroundService
         while(!stoppingToken.IsCancellationRequested)
         {
             
-            var consumeResult = consumer.Consume(stoppingToken);
+            var nipOutwardTransactionResults = new ConcurrentBag<ConsumeResult<Ignore, string>>();
 
-            if(consumeResult != null)
+            for (int i = 0; i < kafkaDebitConsumerConfig.NumberOfTransactionToConsume; i++)
             {
-                var nipOutwardTransaction = AvroConvert.Deserialize<CreateNIPOutwardTransactionDto>(consumeResult.Message.Value);
-                Console.WriteLine(JsonConvert.SerializeObject(nipOutwardTransaction));
-
-                using (var scope = serviceProvider.CreateScope()) // this will use `IServiceScopeFactory` internally
-                {
-                    var nipOutwardDebitService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitService>();
-                    await nipOutwardDebitService.ProcessTransaction(nipOutwardTransaction);
-                }
+                nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
             }
 
-            if(kafkaDebitConsumerConfig.ConsumerConfig.EnableAutoOffsetStore == false)
-                consumer.StoreOffset(consumeResult);
+            ParallelLoopResult parallelLoopResult = Parallel.ForEach(nipOutwardTransactionResults, async transactionResult => 
+            {
+                try
+                {
+                    if(transactionResult != null)
+                    {
+                        var nipOutwardTransaction = JsonConvert.DeserializeObject<NIPOutwardTransaction>(transactionResult.Message.Value);
+                        
+                        if(nipOutwardTransaction != null)
+                        {
+                            using (var scope = serviceProvider.CreateScope()) // this will use `IServiceScopeFactory` internally
+                            {
+                                var nipOutwardDebitService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitProcessorService>();
+                                await nipOutwardDebitService.ProcessTransaction(nipOutwardTransaction);
+                            }
+                        }
+
+                        
+                    }
+
+                }
+                catch (System.Exception ex)
+                {
+                    logger.Error(ex.Message, ex);
+                }
+
+                if(kafkaDebitConsumerConfig.ConsumerConfig.EnableAutoOffsetStore == false)
+                        consumer.StoreOffset(transactionResult);
+                
+            });
+            
          }
     }
 }
