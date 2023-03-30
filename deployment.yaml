@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: nipOutboundAPI
+  name: nipoutboundapi
   labels: 
-    app: nipOutboundAPI
+    app: nipoutboundapi
 spec:
   selector:
-    app: nipOutboundAPI
+    app: nipoutboundapi
   ports:
   - name: http
     port: 80
@@ -15,22 +15,22 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nipOutboundAPI
+  name: nipoutboundapi
   labels:
     version: v1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nipOutboundAPI
+      app: nipoutboundapi
   template:
     metadata:
       labels:
-        app: nipOutboundAPI
+        app: nipoutboundapi
         version: v1
     spec:
       containers:
-      - name: nipOutboundAPI
+      - name: nipoutboundapi
         image: "tcoeregistry2.azurecr.io/sterling-bank-nipoutbound-api:#{ Build.BuildId }#"
         ports:
         - containerPort: 80 
