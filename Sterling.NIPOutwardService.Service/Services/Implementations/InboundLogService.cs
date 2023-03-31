@@ -13,9 +13,9 @@ public partial class InboundLogService : IInboundLogService
 
     }
 
-    public async Task<Result<string>> CreateInboundLog(InboundLog inboundLog)
+    public async Task<FundsTransferResult<string>> CreateInboundLog(InboundLog inboundLog)
     {
-        Result<string> result = new Result<string>();
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
         result.IsSuccess = false;
         try
         {
@@ -44,9 +44,9 @@ public partial class InboundLogService : IInboundLogService
         return result;
     }
 
-    public async Task<Result<List<InboundLog>>> GetInboundLogs()
+    public async Task<FundsTransferResult<List<InboundLog>>> GetInboundLogs()
     {
-        Result<List<InboundLog>> result = new Result<List<InboundLog>>();
+        FundsTransferResult<List<InboundLog>> result = new FundsTransferResult<List<InboundLog>>();
         result.IsSuccess = false;
         try
         {
@@ -88,9 +88,9 @@ public partial class InboundLogService : IInboundLogService
         }
     } */
 
-    public async Task<Result<InboundLog>> GetInboundLog(string inboundLogId)
+    public async Task<FundsTransferResult<InboundLog>> GetInboundLog(string inboundLogId)
     {
-        Result<InboundLog> result = new Result<InboundLog>();
+        FundsTransferResult<InboundLog> result = new FundsTransferResult<InboundLog>();
         result.IsSuccess = false;
         try
         {
@@ -110,9 +110,9 @@ public partial class InboundLogService : IInboundLogService
         return result;
     }
 
-    public async Task<Result<bool>> RemoveInboundLog(string inboundLogId)
+    public async Task<FundsTransferResult<bool>> RemoveInboundLog(string inboundLogId)
     {
-        Result<bool> result = new Result<bool>();
+        FundsTransferResult<bool> result = new FundsTransferResult<bool>();
         result.IsSuccess = false;
 
         try
@@ -143,9 +143,9 @@ public partial class InboundLogService : IInboundLogService
         return result;
     }
 
-    public async Task<Result<bool>> UpdateInboundLog(string inboundLogId, InboundLog inboundLog)
+    public async Task<FundsTransferResult<bool>> UpdateInboundLog(string inboundLogId, InboundLog inboundLog)
     {
-        Result<bool> result = new Result<bool>();
+        FundsTransferResult<bool> result = new FundsTransferResult<bool>();
         result.IsSuccess = false;
         try
         {

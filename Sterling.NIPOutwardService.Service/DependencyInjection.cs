@@ -1,3 +1,7 @@
+using Sterling.NIPOutwardService.Domain.Config.Implementations;
+using Sterling.NIPOutwardService.Service.Helpers.Implementations;
+using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
+
 namespace Sterling.NIPOutwardService.Service;
 
 public static class DependencyInjection
@@ -40,6 +44,16 @@ public static class DependencyInjection
                 };
         //x.Authority = configuration["Token_Issuer"];
     });
+
+        return services;
+    }
+
+    public static IServiceCollection AddAPIDependencies(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<INIPOutwardNameEnquiryService, NIPOutwardNameEnquiryService>();
+        services.AddScoped<ISSM, SSM>();
+        var apiSettings = configuration.GetSection("APISettings");
+        services.Configure<APISettings>(apiSettings);
 
         return services;
     }

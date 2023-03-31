@@ -23,11 +23,11 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         this.mapper = mapper;
     }
 
-     public async Task<Result<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
+    public async Task<FundsTransferResult<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
     {
-        var response = new Result<string>();
+        var response = new FundsTransferResult<string>();
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.APICalled = "NIPOutwardDebitService";
+        inboundLog.APICalled = "NIPOutwardService";
         inboundLog.APIMethod = "FundsTransfer";
 
         inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
@@ -40,7 +40,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             await inboundLogService.CreateInboundLog(inboundLog);
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(createTransactionResult);
-            return mapper.Map<Result<string>>(createTransactionResult);
+            return mapper.Map<FundsTransferResult<string>>(createTransactionResult);
         }
 
         if(request.PriorityLevel == 1)
@@ -62,9 +62,9 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         return response;
     }
 
-    public async Task<Result<NIPOutwardTransaction>> CreateTransaction(CreateNIPOutwardTransactionDto request) 
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> CreateTransaction(CreateNIPOutwardTransactionDto request) 
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         result.IsSuccess = false;
         try
         {

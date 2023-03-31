@@ -5,7 +5,7 @@ public partial class AutoMapping : Profile
     public AutoMapping()
     {
         CreateMap<CreateNIPOutwardTransactionDto, NIPOutwardTransaction>();
-        CreateMap(typeof(Result<>), typeof(Result<string>));
+        CreateMap(typeof(FundsTransferResult<>), typeof(FundsTransferResult<string>));
         CreateMap<NIPOutwardTransaction, CreateVTellerTransactionDto>();
     }
 }

@@ -13,12 +13,12 @@
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.3.0" />
     <PackageReference Include="Serilog.Sinks.MongoDB" Version="5.1.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
    <ItemGroup>
     <ProjectReference Include="..\Sterling.NIPOutwardService.Domain\Sterling.NIPOutwardService.Domain.csproj" />
     <ProjectReference Include="..\Sterling.NIPOutwardService.Service\Sterling.NIPOutwardService.Service.csproj" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 

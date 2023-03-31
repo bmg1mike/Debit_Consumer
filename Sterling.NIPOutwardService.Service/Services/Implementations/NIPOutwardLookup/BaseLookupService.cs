@@ -13,14 +13,14 @@ public class BaseLookupService <TEntity>
         this.lookupRepository = lookupRepository;
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
-    public async Task<Result<string>> FindOrCreate(long ID){
+    public async Task<FundsTransferResult<string>> FindOrCreate(long ID){
         // var checkIfRecordExistsResult = await nipOutwardDebitLookupRepository.FindByNIPOutwardTransactionID(ID);
 
         // if (checkIfRecordExistsResult)
         // {
 
         // }
-        Result<string> result = new Result<string>();
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
         result.IsSuccess = false;
         try
         {

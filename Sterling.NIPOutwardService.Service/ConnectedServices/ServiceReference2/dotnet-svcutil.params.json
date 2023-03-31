@@ -1,0 +1,16 @@
+{
+  "providerId": "Microsoft.Tools.ServiceModel.Svcutil",
+  "version": "2.1.0",
+  "options": {
+    "inputs": [
+      "http://192.234.10.204:86/NIPWS/NIPInterface?wsdl"
+    ],
+    "namespaceMappings": [
+      "*, NIBBSNIPService"
+    ],
+    "outputFile": "Reference.cs",
+    "sync": true,
+    "targetFramework": "net7.0",
+    "typeReuseMode": "All"
+  }
+}

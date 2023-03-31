@@ -2,6 +2,6 @@ namespace Sterling.NIPOutwardService.Service.Services.Interfaces.Kafka;
 
 public interface INIPOutwardDebitProducerService 
 {
-    Task<Result<string>> PublishTransaction(NIPOutwardTransaction request);
+    Task<FundsTransferResult<string>> PublishTransaction(NIPOutwardTransaction request);
     OutboundLog GetOutboundLog();
 }

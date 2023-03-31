@@ -26,11 +26,11 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         });
     }
 
-    public async Task<Result<NIPOutwardTransaction>> Create(CreateNIPOutwardTransactionDto request)
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> Create(CreateNIPOutwardTransactionDto request)
     {
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.Create)}";
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         result.IsSuccess = false;
         try
         {
@@ -104,9 +104,9 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
     }
 
 
-    public Result<NIPOutwardTransaction> ValidateCreateNIPOutwardTransactionDto(CreateNIPOutwardTransactionDto request)
+    public FundsTransferResult<NIPOutwardTransaction> ValidateCreateNIPOutwardTransactionDto(CreateNIPOutwardTransactionDto request)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         result.IsSuccess = false;
 
         CreateNIPOutwardTransactionDtoValidator validator = new CreateNIPOutwardTransactionDtoValidator();

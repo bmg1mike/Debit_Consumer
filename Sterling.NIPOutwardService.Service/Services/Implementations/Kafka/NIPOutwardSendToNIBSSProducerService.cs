@@ -17,9 +17,9 @@ public class NIPOutwardSendToNIBSSProducerService : INIPOutwardSendToNIBSSProduc
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
 
-    public async Task<Result<string>> PublishTransaction(NIPOutwardTransaction request)
+    public async Task<FundsTransferResult<string>> PublishTransaction(NIPOutwardTransaction request)
     {
-        Result<string> result = new Result<string>();
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.PublishTransaction)}";
 

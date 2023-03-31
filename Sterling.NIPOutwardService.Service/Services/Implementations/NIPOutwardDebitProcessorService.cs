@@ -62,9 +62,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         return recordsToBeMoved;
     }
 
-    public async Task<Result<string>> ProcessTransaction(NIPOutwardTransaction nipOutwardTransaction)
+    public async Task<FundsTransferResult<string>> ProcessTransaction(NIPOutwardTransaction nipOutwardTransaction)
     {
-        var response = new Result<string>();
+        var response = new FundsTransferResult<string>();
         
         response = await DebitAccount(nipOutwardTransaction);
         response.Content = string.Empty;
@@ -78,9 +78,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         
     }
 
-    public async Task<Result<string>> DebitAccount(NIPOutwardTransaction nipOutwardTransaction)
+    public async Task<FundsTransferResult<string>> DebitAccount(NIPOutwardTransaction nipOutwardTransaction)
     {
-        Result<string> result = new Result<string>();
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
         result.IsSuccess = false;
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
@@ -92,14 +92,14 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             if(!checkLookupResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(checkLookupResult);
+                return mapper.Map<FundsTransferResult<string>>(checkLookupResult);
             }
 
             var generateSessionIdResult = await GenerateSessionId(nipOutwardTransaction, checkLookupResult.Content);
             
             if (!generateSessionIdResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(generateSessionIdResult);
+                return mapper.Map<FundsTransferResult<string>>(generateSessionIdResult);
             }
 
             nipOutwardTransaction = generateSessionIdResult.Content;
@@ -110,7 +110,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             if (!getDebitAccountDetailsResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(getDebitAccountDetailsResult);
+                return mapper.Map<FundsTransferResult<string>>(getDebitAccountDetailsResult);
             }
 
             nipOutwardTransaction.OriginatorEmail = getDebitAccountDetailsResult.Content.DebitAccountDetails.Email;
@@ -120,7 +120,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
              if (!doFraudCheckResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(doFraudCheckResult);
+                return mapper.Map<FundsTransferResult<string>>(doFraudCheckResult);
             }
 
             nipOutwardTransaction = doFraudCheckResult.Content;
@@ -129,7 +129,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             if (!appIDCheckResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(appIDCheckResult);
+                return mapper.Map<FundsTransferResult<string>>(appIDCheckResult);
             }
 
             var customerStatusCode = getDebitAccountDetailsResult.Content.DebitAccountDetails.CustomerStatusCode;
@@ -137,7 +137,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             if (!CheckIfDateIsHolidayResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(CheckIfDateIsHolidayResult);
+                return mapper.Map<FundsTransferResult<string>>(CheckIfDateIsHolidayResult);
             }
 
             var HasConcessionPerTransPerday = false;
@@ -165,7 +165,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             if(!computeVatAndFeeResult.IsSuccess)
             {
-                return mapper.Map<Result<string>>(computeVatAndFeeResult);
+                return mapper.Map<FundsTransferResult<string>>(computeVatAndFeeResult);
             }
 
             var usableBalance = getDebitAccountDetailsResult.Content.DebitAccountDetails.UsableBalance;
@@ -198,7 +198,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             outboundLogs.Add(nipOutwardSendToNIBSSProducerService.GetOutboundLog());
            // await inboundLogService.CreateInboundLog(inboundLog);
-            return mapper.Map<Result<string>>(debitAccountResult);
+            return mapper.Map<FundsTransferResult<string>>(debitAccountResult);
             
 
         }
@@ -233,11 +233,11 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     //do debit fn and update based on vteller response
     }
 
-    public async Task<Result<NIPOutwardTransaction>> DebitAccount(CreateVTellerTransactionDto vTellerTransactionDto,
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> DebitAccount(CreateVTellerTransactionDto vTellerTransactionDto,
     NIPOutwardTransaction nipOutwardTransaction, ConcessionTransactionAmountLimit? concessionTransactionAmountLimit,
     bool holidayFound, int customerStatusCode, int customerClass )
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.DebitAccount)}";
@@ -290,9 +290,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
     }
 
-    public async Task<Result<NIPOutwardTransaction>> GenerateSessionId(NIPOutwardTransaction transaction, NIPOutwardDebitLookup nipOutwardDebitLookup)
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> GenerateSessionId(NIPOutwardTransaction transaction, NIPOutwardDebitLookup nipOutwardDebitLookup)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GenerateSessionId)}";
@@ -380,10 +380,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
          
     }
 
-    public async Task<Result<NIPOutwardTransaction>> DoFraudCheck(NIPOutwardTransaction transaction, 
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> DoFraudCheck(NIPOutwardTransaction transaction, 
     NIPOutwardDebitLookup nipOutwardDebitLookup)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         result.IsSuccess = false;
         try
@@ -448,9 +448,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         
     }
 
-    public async Task<Result<string>> AppIDCheck(NIPOutwardTransaction transaction)
+    public async Task<FundsTransferResult<string>> AppIDCheck(NIPOutwardTransaction transaction)
     {
-        Result<string> result = new Result<string>();
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         result.IsSuccess = false;
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
@@ -518,9 +518,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
     }
 
-    public async Task<Result<bool>> CheckIfDateIsHoliday(NIPOutwardTransaction transaction, int CustomerStatusCode)
+    public async Task<FundsTransferResult<bool>> CheckIfDateIsHoliday(NIPOutwardTransaction transaction, int CustomerStatusCode)
     {
-        Result<bool> result = new Result<bool>();
+        FundsTransferResult<bool> result = new FundsTransferResult<bool>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         result.IsSuccess = false;
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
@@ -570,10 +570,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
     }
 
-    public async Task<Result<CreateVTellerTransactionDto>> ComputeVatAndFee(CreateVTellerTransactionDto createVTellerTransactionDto, 
+    public async Task<FundsTransferResult<CreateVTellerTransactionDto>> ComputeVatAndFee(CreateVTellerTransactionDto createVTellerTransactionDto, 
     NIPOutwardTransaction model)
     {
-        Result<CreateVTellerTransactionDto> result = new Result<CreateVTellerTransactionDto>();
+        FundsTransferResult<CreateVTellerTransactionDto> result = new FundsTransferResult<CreateVTellerTransactionDto>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.ComputeVatAndFee)}";
@@ -669,10 +669,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
     }
 
-     public async Task<Result<NIPOutwardTransaction>> DoChecksBasedOnConcession(NIPOutwardTransaction transaction, 
+     public async Task<FundsTransferResult<NIPOutwardTransaction>> DoChecksBasedOnConcession(NIPOutwardTransaction transaction, 
      ConcessionTransactionAmountLimit concessionTransactionAmountLimit)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         result.IsSuccess = false;
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
@@ -761,10 +761,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
     }
 
-    public async Task<Result<NIPOutwardTransaction>> DoChecksBasedOnCBNorEFTLimit(NIPOutwardTransaction transaction, bool holidayFound, 
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> DoChecksBasedOnCBNorEFTLimit(NIPOutwardTransaction transaction, bool holidayFound, 
     int customerStatusCode, int cus_class)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         result.IsSuccess = false;
 
@@ -909,10 +909,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             
     }
 
-    public async Task<Result<NIPOutwardTransaction>> CallVTellerToDebitAccount(CreateVTellerTransactionDto createVTellerTransactionDto, 
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> CallVTellerToDebitAccount(CreateVTellerTransactionDto createVTellerTransactionDto, 
         NIPOutwardTransaction model, string branchCode)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         result.IsSuccess = false;
         try
@@ -978,10 +978,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         
     }
 
-    public async Task<Result<NIPOutwardTransaction>> UpdateVTellerResponse(NIPOutwardTransaction transaction, 
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> UpdateVTellerResponse(NIPOutwardTransaction transaction, 
         VTellerResponseDto response)
     {
-        Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.UpdateVTellerResponse)}";
@@ -1132,9 +1132,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
          
     }
 
-    public async Task<Result<IncomeAccountsDetails>> GetIncomeAccounts()
+    public async Task<FundsTransferResult<IncomeAccountsDetails>> GetIncomeAccounts()
     {
-        Result<IncomeAccountsDetails> result = new Result<IncomeAccountsDetails>();
+        FundsTransferResult<IncomeAccountsDetails> result = new FundsTransferResult<IncomeAccountsDetails>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         result.IsSuccess = false;
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
@@ -1174,9 +1174,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         
     }
 
-    public async Task<Result<GetDebitAccountDetailsDto>> GetDebitAccountDetails(CreateVTellerTransactionDto vTellerTransactionDto)
+    public async Task<FundsTransferResult<GetDebitAccountDetailsDto>> GetDebitAccountDetails(CreateVTellerTransactionDto vTellerTransactionDto)
     {
-        Result<GetDebitAccountDetailsDto> result = new Result<GetDebitAccountDetailsDto>();
+        FundsTransferResult<GetDebitAccountDetailsDto> result = new FundsTransferResult<GetDebitAccountDetailsDto>();
         OutboundLog outboundLog = new OutboundLog  { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetDebitAccountDetails)}";

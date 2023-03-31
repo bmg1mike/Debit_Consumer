@@ -16,7 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
     c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Sterling One Time Password Manager", Version = "v1" });
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Sterling Outward Funds Transfer Service", Version = "v1" });
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Description = "Jwt auth header",
@@ -82,6 +82,7 @@ builder.Services.AddDataDependencies(builder.Configuration);
 builder.Services.AddServiceDependencies(builder.Configuration);
 builder.Services.AddDebitProducerServiceDependencies(builder.Configuration);
 builder.Services.AddSendToNIBBSProducerServiceDependencies(builder.Configuration);
+builder.Services.AddAPIDependencies(builder.Configuration);
 
 builder.Services.AddApiVersioning(x =>  
             {  

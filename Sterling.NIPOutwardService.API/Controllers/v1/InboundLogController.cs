@@ -14,7 +14,7 @@ public partial class InboundLogsController : BaseController
     [Route("GetInboundLogs/")]
     public async Task<ActionResult> GetInboundLogs()
     {
-        var result = new Result<List<InboundLog>>();
+        var result = new FundsTransferResult<List<InboundLog>>();
         result.RequestTime = DateTime.UtcNow;
 
         var response = await inboundLogService.GetInboundLogs();
@@ -27,7 +27,7 @@ public partial class InboundLogsController : BaseController
     [Route("GetInboundLog/")]
     public async Task<ActionResult> GetInboundLog(string id)
     {
-        var result = new Result<InboundLog>();
+        var result = new FundsTransferResult<InboundLog>();
         result.RequestTime = DateTime.UtcNow;
 
        /*if (!ModelState.IsValid)

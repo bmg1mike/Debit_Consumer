@@ -26,7 +26,7 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
             Exception Details: {exception.Message} {exception.StackTrace} " ;
     });
     }
-    public async Task<Result<NIPOutwardDebitLookup>> FindOrCreate(long ID)
+    public async Task<FundsTransferResult<NIPOutwardDebitLookup>> FindOrCreate(long ID)
     {
         // var checkIfRecordExistsResult = await nipOutwardDebitLookupRepository.FindByNIPOutwardTransactionID(ID);
 
@@ -38,7 +38,7 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.FindOrCreate)}";
         outboundLog.RequestDetails = $"{ID}";
 
-        Result<NIPOutwardDebitLookup> result = new Result<NIPOutwardDebitLookup>();
+        FundsTransferResult<NIPOutwardDebitLookup> result = new FundsTransferResult<NIPOutwardDebitLookup>();
         result.IsSuccess = false;
         try
         {
