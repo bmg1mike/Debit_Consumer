@@ -330,7 +330,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     transaction.CreditAccountName = namerspArray[1];
                     transaction.BeneficiaryBVN = namerspArray[2];
                     transaction.BeneficiaryKYCLevel = namerspArray[3];
-                    transaction.NameResponse = namerspArray[0];
+                    transaction.NameEnquiryResponse = namerspArray[0];
                 }
                 else
                 {
@@ -997,7 +997,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.StatusFlag = 26;
                 transaction.FundsTransferResponse = "1x";
                 await nipOutwardTransactionService.Update(transaction);
+
                 result.IsSuccess = false;
+                result.Message = "Transaction Failed";
+                
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLog.ResponseDetails = $"response:{response.Respreturnedcode1} error text: {response.error_text}";
                 outboundLogs.Add(outboundLog);
@@ -1086,7 +1089,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.StatusFlag = 27;
                 transaction.FundsTransferResponse = Respval;
                 await nipOutwardTransactionService.Update(transaction);
+
                 result.IsSuccess = false;
+                result.Message = "Transaction Failed";
 
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLog.ResponseDetails = $"response:{response.Respreturnedcode1} error text: {response.error_text}";

@@ -4,7 +4,7 @@ public class NIPOutwardTransaction
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Key]
-    public int ID { get; set; }
+    public long ID { get; set; }
     public string SessionID { get; set; }
     public string NameEnquirySessionID { get; set; }
     public string TransactionCode { get; set; }
@@ -23,7 +23,7 @@ public class NIPOutwardTransaction
     public DateTime? DateAdded { get; set; }
     public string DebitRequeryStatus { get; set; }
     public string NIBSSRequeryStatus { get; set; }
-    public string NameResponse { get; set; }
+    public string NameEnquiryResponse { get; set; }
     public DateTime? LastUpdate { get; set; }
     public string ReversalStatus { get; set; }
     public byte DebitResponse { get; set; }
@@ -44,7 +44,7 @@ public class NIPOutwardTransaction
     public string BeneficiaryBVN { get; set; }
     public string BeneficiaryKYCLevel { get; set; }
     public string OriginatorKYCLevel { get; set; }
-    public string TransLocation { get; set; }
+    public string TransactionLocation { get; set; }
     public int AppId { get; set; }
     public DateTime? VtellerRequestTime { get; set; }
     public DateTime? VtellerResponseTime { get; set; }

@@ -1,4 +1,6 @@
 using Sterling.NIPOutwardService.Service.Helpers;
+using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
@@ -34,13 +36,19 @@ public class VTellerService : IVtellerService
     private readonly ITransactionDetailsRepository transactionDetailsRepository;
     private List<OutboundLog> outboundLogs;
     private readonly AppSettings appSettings;
+    private readonly IEncryption encryption;
+    private readonly HttpClient httpClient;
 
-    public VTellerService(ITransactionDetailsRepository transactionDetailsRepository, IOptions<AppSettings> appSettings)
+    public VTellerService(ITransactionDetailsRepository transactionDetailsRepository, IOptions<AppSettings> appSettings,
+    IEncryption encryption, HttpClient httpClient)
     {
         this.transactionDetailsRepository = transactionDetailsRepository;
         this.outboundLogs = new List<OutboundLog> ();
         this.appSettings = appSettings.Value;
-
+        this.encryption = encryption;
+        this.httpClient = httpClient;
+        this.httpClient.BaseAddress = new Uri(this.appSettings.VtellerProperties.BaseUrl);
+        this.httpClient.Timeout = TimeSpan.FromMinutes(1);
     }
     public List<OutboundLog> GetOutboundLogs()
     {
@@ -363,16 +371,25 @@ public class VTellerService : IVtellerService
             outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.APIMethod = $"VTeller.nfpSoapClient.NIBBSAsync";
             outboundLog.RequestDetails = $"{xg.req}";
-            using (VTeller.nfpSoapClient vs = new VTeller.nfpSoapClient(VTeller.nfpSoapClient.EndpointConfiguration.nfpSoap, appSettings.VTellerSoapService))
+            // using (VTeller.nfpSoapClient vs = new VTeller.nfpSoapClient(VTeller.nfpSoapClient.EndpointConfiguration.nfpSoap, appSettings.VTellerSoapService))
+            // {
+            //     var vTellerResp = await vs.NIBBSAsync(xg.req, t.ID.ToString(), t.SessionID);
+            //     xg.resp = vTellerResp.Body.NIBBSResult;
+            // }
+
+            var response = await AccountCreditRouter(xg.req, t.ID.ToString(), t.SessionID);
+
+            if(response.IsSuccess)
             {
-                var vTellerResp = await vs.NIBBSAsync(xg.req, t.ID.ToString(), t.SessionID);
-                xg.resp = vTellerResp.Body.NIBBSResult;
+                xg.resp = response.Content;
+            }
+            else 
+            {
+                xg.resp = response.ErrorMessage;
             }
 
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             
-            //xg.resp = vs.NIBBS(xg.req, "NIBSS Transfer from Sterling " + t.Refid);240000
-
             xg.parseResponse();
 
             ////collect returened values
@@ -424,14 +441,83 @@ public class VTellerService : IVtellerService
         catch (Exception ex)
         {
             var rawRequest = JsonConvert.SerializeObject(t);
-            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-                "\r\n" + $@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
-            //log.Error("Unable to debit customer account " + " The error " + ex + " " + t.inCust.bra_code + t.inCust.cus_num + t.inCust.cur_code + t.inCust.led_code + t.inCust.sub_acct_code + " for amount " + t.amount.ToString() + " and fee charge " + t.feecharge.ToString() + ex);
+           // outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+            //    "\r\n" + $@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
+            Log.Error($@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}");
             vTellerResponse.Respreturnedcode1 = "1x";
             
         }
-        this.outboundLogs.Add(outboundLog);
+        //this.outboundLogs.Add(outboundLog);
         
         return vTellerResponse;
+    }
+
+    private async Task<VtellerAPIResponseDto> AccountCreditRouter(string Xml, string TransactionType, string SessionId)
+    {
+        VtellerAPIResponseDto response = new();
+        try
+        {
+            VtellerRequestDto request = new()
+            {
+                SessionId = SessionId,
+                TransactionType = TransactionType,
+                Xml = Xml
+            };
+            string seralisedRequest = JsonConvert.SerializeObject(request);
+            EncryptedDto encryptedRequest = new()
+            {
+                Data = encryption.EncryptAes(seralisedRequest, appSettings.AesSecretKey, appSettings.AesInitializationVector)
+            };
+            Log.Information($"Method: VtellerRouter. Plain request sent: {seralisedRequest}");
+            string checkSum = encryption.CalculateChecksum(appSettings.VtellerProperties.ApiKey);
+            EncryptedDto encryptedResponse = await CallVTeller(encryptedRequest, checkSum);
+            string decryptedResponse = encryption.DecryptAes(encryptedResponse.Data, appSettings.AesSecretKey, appSettings.AesInitializationVector);
+            Log.Information($"Method: VtellerRouter. Plain response received: {decryptedResponse}");
+            if (!string.IsNullOrEmpty(decryptedResponse)) response = JsonConvert.DeserializeObject<VtellerAPIResponseDto>(decryptedResponse);
+            else response.IsSuccess = false;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Error occured routing to vteller for: {Xml} and SessionId: {SessionId}");
+            response.IsSuccess = false;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+        }
+        return response;
+    }
+
+    public async Task<EncryptedDto> CallVTeller(EncryptedDto encryptedRequest, string checkSum)
+    {
+        EncryptedDto response = new EncryptedDto();
+        var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+
+        try
+        {
+            var rawRequest = JsonConvert.SerializeObject(encryptedRequest);
+
+            outboundLog.APICalled = appSettings.VtellerProperties.DebitRequest + appSettings.VtellerProperties.DebitRequest;
+            outboundLog.APIMethod = appSettings.VtellerProperties.DebitRequest + appSettings.VtellerProperties.DebitRequest;
+            outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+            outboundLog.RequestDetails = rawRequest;
+                
+            var requestPayload = new StringContent(
+            rawRequest,
+            Encoding.UTF8,
+            Application.Json); // using static System.Net.Mime.MediaTypeNames;    
+            httpClient.DefaultRequestHeaders.Add("X-Checksum", checkSum); 
+            using var httpResponseMessage = await httpClient.PostAsync(appSettings.VtellerProperties.DebitRequest, requestPayload); 
+            var rawResponse = httpResponseMessage.Content.ReadAsStringAsync().Result;
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            outboundLog.RequestDetails = rawResponse;
+            response = JsonConvert.DeserializeObject<EncryptedDto>(rawResponse);
+
+        }
+        catch (Exception ex) 
+        { 
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+            "\r\n" + $@"Exception Details: {ex.Message} {ex.StackTrace}";
+        }
+        this.outboundLogs.Add(outboundLog);
+        return response;
+
     }
 }

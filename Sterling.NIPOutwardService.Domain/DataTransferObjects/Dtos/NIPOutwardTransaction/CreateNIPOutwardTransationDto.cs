@@ -18,14 +18,14 @@ public class CreateNIPOutwardTransactionDto
     public string CurrencyCode { get; set; }
     public string LedgerCode { get; set; }
     public string SubAccountCode { get; set; }
-    public string NameResponse { get; set; }
+    public string NameEnquiryResponse { get; set; }
     public string DebitAccountNumber { get; set; }
     public string BeneficiaryBankCode { get; set; }
     public string OriginatorBVN { get; set; }
     public string BeneficiaryBVN { get; set; }
     public string BeneficiaryKYCLevel { get; set; }
     public string OriginatorKYCLevel { get; set; }
-    public string TransLocation { get; set; }
+    public string TransactionLocation { get; set; }
     public int AppId { get; set; }
     public int PriorityLevel { get; set; }
     

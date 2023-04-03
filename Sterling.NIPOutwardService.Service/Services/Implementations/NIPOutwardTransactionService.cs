@@ -8,11 +8,19 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
     private readonly IMapper mapper;
     private readonly AsyncRetryPolicy retryPolicy;
     private OutboundLog outboundLog;
-    public NIPOutwardTransactionService(INIPOutwardTransactionRepository repository, IMapper mapper)
+    private InboundLog inboundLog;
+    private readonly IInboundLogService inboundLogService;
+    public NIPOutwardTransactionService(INIPOutwardTransactionRepository repository, IMapper mapper, 
+    IInboundLogService inboundLogService)
     {
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString()};
         this.repository = repository;
         this.mapper = mapper;
+        this.inboundLog = new InboundLog {
+            InboundLogId = ObjectId.GenerateNewId().ToString(), 
+            OutboundLogs = new List<OutboundLog>(),
+            };
+        this.inboundLogService = inboundLogService;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
         {
@@ -65,33 +73,6 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    // public async Task<Result<string>> Create(NIPOutwardTransaction request)
-    // {
-    //     Result<NIPOutwardTransaction> result = new Result<NIPOutwardTransaction>();
-    //     result.IsSuccess = false;
-    //     try
-    //     {
-    //         var model = mapper.Map<NIPOutwardTransaction>(request);
-    //         await repository.Create(model);
-
-    //         result.IsSuccess = true;
-    //         result.Message = "Success";
-    //         result.Content = model;
-
-    //     }
-    //     catch (System.Exception ex)
-    //     {
-    //         var rawRequest = JsonConvert.SerializeObject(request);
-    //         result.IsSuccess = false;
-    //         result.Message = "Internal Server Error";
-    //         outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-    //         "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
-            
-    //     }
-
-    //     return result;
-    // }
-
     public async Task<int> Update(NIPOutwardTransaction request)
     {
         var recordsUpdated = 0;
@@ -130,6 +111,49 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
              result.IsSuccess = true;
         }
 
+        return result;
+    }
+
+    public async Task<FundsTransferResult<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequest request)
+    {
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccesful)}";
+        outboundLog.RequestDetails = $@"PaymentReference {request.PaymentReference}";
+
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
+        result.IsSuccess = false;
+        try
+        {
+            var checkIfTransactionIsSuccessfulResult = false;
+            await retryPolicy.ExecuteAsync(async () =>
+            {
+                checkIfTransactionIsSuccessfulResult = await repository.CheckIfTransactionIsSuccessful(request.PaymentReference);
+
+            });
+
+            result.IsSuccess = checkIfTransactionIsSuccessfulResult;
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            outboundLog.ResponseDetails = $"Transaction successful: {checkIfTransactionIsSuccessfulResult}";
+
+            if (checkIfTransactionIsSuccessfulResult)
+            {
+                result.Message = "Transaction is successful";
+            }
+            else{
+                result.Message = "Transaction processing";
+            } 
+            
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = "Internal Server Error";
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+            "\r\n" + $@"PaymentReference {request.PaymentReference} Exception Details: {ex.Message} {ex.StackTrace}";
+            
+        }
+        inboundLog.OutboundLogs.Add(outboundLog);
+        await inboundLogService.CreateInboundLog(inboundLog);
         return result;
     }
 

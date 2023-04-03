@@ -17,11 +17,12 @@ public static class DependencyInjection
         services.AddScoped<INIPOutwardDebitProcessorService, NIPOutwardDebitProcessorService>();
         services.AddScoped<INIPOutwardTransactionService, NIPOutwardTransactionService>();
         services.AddScoped<ITransactionAmountLimitService, TransactionAmountLimitService>();
-        services.AddScoped<IVtellerService, VTellerService>();
-        
+        services.AddScoped<IEncryption, Encryption>();
 
         services.AddHttpClient<IFraudAnalyticsService, FraudAnalyticsService>()
         .AddPolicyHandler(GetRetryPolicy());
+
+        services.AddHttpClient<IVtellerService, VTellerService>();
 
         services.AddAutoMapper(typeof(AutoMapping));
         services.AddControllersWithViews();

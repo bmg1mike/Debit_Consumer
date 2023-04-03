@@ -26,7 +26,6 @@ public class DebitAccountRepository : IDebitAccountRepository
                 Exception Details: {exception.Message} {exception.StackTrace} " ;
         });
     }
-
     
     public async Task<DebitAccountDetails> GetDebitAccountDetails(string AccountNumber)
     {

@@ -25,5 +25,14 @@ public class AppSettings
     public decimal FLUTTERWAVE_FEE { get; set; }
     public decimal ZDVANCE_FEE { get; set; }
     public decimal KUDI_FEE { get; set; }
+    public string AesSecretKey { get; set; }
+    public string AesInitializationVector { get; set; }
+    public VtellerProperties VtellerProperties { get; set; }
 }
 
+public class VtellerProperties 
+{
+    public string ApiKey { get; set; }
+    public string BaseUrl { get; set; }
+    public string DebitRequest { get; set; }
+}
