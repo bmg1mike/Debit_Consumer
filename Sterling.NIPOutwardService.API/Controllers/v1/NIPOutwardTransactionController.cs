@@ -41,7 +41,7 @@ public partial class NIPOutwardTransactionController : BaseController
     }
     [HttpPost]
     [Route("TransactionValidation")]
-    public async Task<ActionResult> TransactionValidation([FromBody] TransactionValidationRequest request)
+    public async Task<ActionResult> TransactionValidation([FromBody] TransactionValidationRequestDto request)
     {
         var result = new FundsTransferResult<string>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
