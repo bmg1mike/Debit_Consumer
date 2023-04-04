@@ -37,9 +37,9 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
 
         if(!createTransactionResult.IsSuccess)
         {
-            await inboundLogService.CreateInboundLog(inboundLog);
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(createTransactionResult);
+            await inboundLogService.CreateInboundLog(inboundLog);
             return mapper.Map<FundsTransferResult<string>>(createTransactionResult);
         }
 

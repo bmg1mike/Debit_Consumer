@@ -1,6 +1,6 @@
 namespace Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos;
 
-public class TransactionValidationRequest 
+public class TransactionValidationRequestDto 
 {
     public string PaymentReference { get; set; }
 }

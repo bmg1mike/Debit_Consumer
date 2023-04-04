@@ -36,7 +36,7 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         RuleFor(x => x.CreditAccountNumber)
         .NotNull()
         .NotEmpty()
-        .MaximumLength(10);
+        .Length(10);
 
         RuleFor(x => x.OriginatorName)
         .NotNull()

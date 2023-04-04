@@ -44,6 +44,16 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         inboundLog.APIMethod = "NameEnquiry";
         inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
 
+        var validationResult = ValidateNameEnquiryResponseDto(request);
+
+        if(!validationResult.IsSuccess)
+        {
+            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.ResponseDetails = validationResult.ErrorMessage;
+            await inboundLogService.CreateInboundLog(inboundLog);
+            return validationResult;
+        }
+
         //string msg = "";
         //string responsecodeVal = "";
         //string AcctNameval = "";
@@ -83,6 +93,35 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
         await inboundLogService.CreateInboundLog(inboundLog);
         return response;
+    }
+
+     public NameEnquiryResult<NameEnquiryResponseDto> ValidateNameEnquiryResponseDto(NameEnquiryRequestDto request)
+    {
+        NameEnquiryResult<NameEnquiryResponseDto> result = new NameEnquiryResult<NameEnquiryResponseDto>();
+        result.IsSuccess = false;
+
+        NameEnquiryRequestDtoValidator validator = new NameEnquiryRequestDtoValidator();
+        ValidationResult results = validator.Validate(request);
+
+        if (!results.IsValid)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var failure in results.Errors)
+            {
+                sb.Append("Property " + failure.PropertyName + " failed validation. Error was: " + failure.ErrorMessage);
+            }
+
+            result.IsSuccess = false;
+            result.ErrorMessage = sb.ToString();
+            result.Message = sb.ToString();
+
+           
+        }
+        else{
+             result.IsSuccess = true;
+        }
+
+        return result;
     }
 
     public void createRequest(NameEnquiryRequestDto request)

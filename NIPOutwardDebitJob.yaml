@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sterlingoutwarddebitjob-deployment
+  labels:
+    app: sterlingoutwarddebitjob
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sterlingoutwarddebitjob
+  template:
+    metadata:
+      labels:
+        app: sterlingoutwarddebitjob
+    spec:
+      containers:
+        - name: sterlingoutwarddebitjob
+          image: tcoeregistry2.azurecr.io/sterlingoutwarddebitjob:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Development
+            - name: MongoDbSettings__ConnectionString
+              value: mongodb://localhost:27017
+            - name: MongoDbSettings__DatabaseName
+              value: NIPOutwardDebitJob
+            - name: AppSettings__SqlServerDbConnectionString
+              value: Data Source=10.0.41.101;Initial Catalog=nfpdb_test;User ID=sa;Password=tylent;Pooling=True;TrustServerCertificate=true;Min Pool Size=5; Max Pool Size =5000;timeout=2000
+            - name: AppSettings__T24DbConnectionString
+              value: user id=STAFJ;password=Ster#123;data source=//10.0.43.153:1539/STERDB;Persist Security Info=True;pooling=true;Max Pool Size=200; Connection Timeout=950;
+            - name: AppSettings__AesSecretKey
+              value: zAL7X5AVRm8l4Ifs
+            - name: AppSettings__AesInitializationVector
+              value: BE/s3V0HtpPsE+1x
+            - name: AppSettings__NameEnquirySoapService
+              value: http://10.0.41.102:8084/NewIBS.asmx
+            - name: AppSettings__FraudBaseUrl
+              value: https://fsscoringtest.azurewebsites.net
+            - name: AppSettings__VtellerProperties_BaseUrl
+              value: http://10.0.41.102:3654
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "0.1"
+            limits:
+              memory: "128Mi"
+              cpu: "0.3"
+      imagePullSecrets:
+          - name: acr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sterlingoutwarddebitjob-service
+spec:
+  type: ClusterIP
+  selector:
+    app: sterlingoutwarddebitjob
+  ports:
+    - protocol: TCP
+      port: 80     

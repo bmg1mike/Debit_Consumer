@@ -46,6 +46,9 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             var validationResult = ValidateCreateNIPOutwardTransactionDto(request);
 
             if(!validationResult.IsSuccess){
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                outboundLog.ResponseDetails = validationResult.ErrorMessage;
+                inboundLog.OutboundLogs.Add(outboundLog);
                 return validationResult;
             }
             
@@ -114,16 +117,26 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    public async Task<FundsTransferResult<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequest request)
+    public async Task<FundsTransferResult<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequestDto request)
     {
-        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccesful)}";
-        outboundLog.RequestDetails = $@"PaymentReference {request.PaymentReference}";
+        inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        inboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccesful)}";
+        inboundLog.RequestDetails = $@"PaymentReference {request.PaymentReference}";
 
         FundsTransferResult<string> result = new FundsTransferResult<string>();
         result.IsSuccess = false;
         try
         {
+            var validationResult = ValidateTransactionValidationRequestDto(request);
+
+            if(!validationResult.IsSuccess)
+            {
+                inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                inboundLog.ResponseDetails = validationResult.ErrorMessage;
+                await inboundLogService.CreateInboundLog(inboundLog);
+                return validationResult;
+            }
+
             var checkIfTransactionIsSuccessfulResult = false;
             await retryPolicy.ExecuteAsync(async () =>
             {
@@ -132,8 +145,8 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             });
 
             result.IsSuccess = checkIfTransactionIsSuccessfulResult;
-            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.ResponseDetails = $"Transaction successful: {checkIfTransactionIsSuccessfulResult}";
+            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.ResponseDetails = $"Transaction successful: {checkIfTransactionIsSuccessfulResult}";
 
             if (checkIfTransactionIsSuccessfulResult)
             {
@@ -148,12 +161,40 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         {
             result.IsSuccess = false;
             result.Message = "Internal Server Error";
-            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-            "\r\n" + $@"PaymentReference {request.PaymentReference} Exception Details: {ex.Message} {ex.StackTrace}";
+            inboundLog.ExceptionDetails = $@"PaymentReference {request.PaymentReference} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }
         inboundLog.OutboundLogs.Add(outboundLog);
         await inboundLogService.CreateInboundLog(inboundLog);
+        return result;
+    }
+
+    public FundsTransferResult<string> ValidateTransactionValidationRequestDto(TransactionValidationRequestDto request)
+    {
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
+        result.IsSuccess = false;
+
+        TransactionValidationRequestDtoValidator validator = new TransactionValidationRequestDtoValidator();
+        ValidationResult results = validator.Validate(request);
+
+        if (!results.IsValid)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var failure in results.Errors)
+            {
+                sb.Append("Property " + failure.PropertyName + " failed validation. Error was: " + failure.ErrorMessage);
+            }
+
+            result.IsSuccess = false;
+            result.ErrorMessage = sb.ToString();
+            result.Message = sb.ToString();
+
+           
+        }
+        else{
+             result.IsSuccess = true;
+        }
+
         return result;
     }
 

@@ -13,3 +13,4 @@ global using Sterling.NIPOutwardService.Domain.Entities;
 global using Sterling.NIPOutwardService.Domain.Common;
 global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.VTeller;
 global using Confluent.Kafka;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
