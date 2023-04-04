@@ -95,7 +95,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 return mapper.Map<FundsTransferResult<string>>(checkLookupResult);
             }
 
-            var generateSessionIdResult = await GenerateSessionId(nipOutwardTransaction, checkLookupResult.Content);
+            var generateSessionIdResult = await GenerateNameEnquirySessionId(nipOutwardTransaction);
             
             if (!generateSessionIdResult.IsSuccess)
             {
@@ -290,12 +290,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
     }
 
-    public async Task<FundsTransferResult<NIPOutwardTransaction>> GenerateSessionId(NIPOutwardTransaction transaction, NIPOutwardDebitLookup nipOutwardDebitLookup)
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> GenerateNameEnquirySessionId(NIPOutwardTransaction transaction)
     {
         FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GenerateSessionId)}";
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GenerateNameEnquirySessionId)}";
         result.IsSuccess = false;
 
         try
@@ -341,29 +341,29 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                    
             }
 
-            #region GenerateFTSessionId
-                transaction.SessionID = utilityHelper.GenerateFundsTransferSessionId(transaction.ID);
-                var recordsUpdated = await nipOutwardTransactionService.Update(transaction);
+            // #region GenerateFTSessionId
+            //     transaction.SessionID = utilityHelper.GenerateFundsTransferSessionId(transaction.ID);
+            //     var recordsUpdated = await nipOutwardTransactionService.Update(transaction);
 
-                if (recordsUpdated < 1)
-                {
-                    outboundLog.ExceptionDetails =  "Unable to update FT SessionId for transaction with RefId " + transaction.ID ;
-                    var updateLog = nipOutwardDebitLookupService.GetOutboundLog();
-                    outboundLogs.Add(outboundLog);
-                    outboundLogs.Add(updateLog);
-                    transaction.StatusFlag = 0;
-                    await nipOutwardTransactionService.Update(transaction);
-                    await nipOutwardDebitLookupService.Delete(nipOutwardDebitLookup);
-                    result.Message = "Internal Server Error";
-                    result.IsSuccess = false;
-                }
-                else{
-                    result.IsSuccess = true;
-                    result.Content = transaction;
-                }
+            //     if (recordsUpdated < 1)
+            //     {
+            //         outboundLog.ExceptionDetails =  "Unable to update FT SessionId for transaction with RefId " + transaction.ID ;
+            //         var updateLog = nipOutwardDebitLookupService.GetOutboundLog();
+            //         outboundLogs.Add(outboundLog);
+            //         outboundLogs.Add(updateLog);
+            //         transaction.StatusFlag = 0;
+            //         await nipOutwardTransactionService.Update(transaction);
+            //         await nipOutwardDebitLookupService.Delete(nipOutwardDebitLookup);
+            //         result.Message = "Internal Server Error";
+            //         result.IsSuccess = false;
+            //     }
+            //     else{
+            //         result.IsSuccess = true;
+            //         result.Content = transaction;
+            //     }
                 
-                #endregion 
-
+            //     #endregion 
+            result.IsSuccess = true;
             result.Content = transaction;
             return result;
         }

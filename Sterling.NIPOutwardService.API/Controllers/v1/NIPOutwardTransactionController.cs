@@ -1,6 +1,4 @@
-using Sterling.NIPOutwardService.Domain.Common.Generics;
 using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
-using Sterling.NIPOutwardService.Service.Services.Implementations;
 
 namespace Sterling.NIPOutwardService.API.Controllers.v1;
 
@@ -20,11 +18,11 @@ public partial class NIPOutwardTransactionController : BaseController
     }
     [HttpPost]
     [Route("FundsTransfer")]
-    public async Task<ActionResult> Transfer([FromBody] CreateNIPOutwardTransactionDto request)
+    public async Task<ActionResult> FundsTransfer([FromBody] CreateNIPOutwardTransactionDto request)
     {
-        var result = new FundsTransferResult<FundsTransferResultContent?>();
+        var result = new Result<string>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new FundsTransferResult<FundsTransferResultContent?>();
+        var response = new Result<string>();
         
         response =  await nipOutwardDebitService.ProcessTransaction(request);
 
@@ -32,11 +30,10 @@ public partial class NIPOutwardTransactionController : BaseController
         {
             response.ErrorMessage = response.Message;
         }
-        response.Content = null;
+        response.Content = string.Empty;
 
         result = response;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        result.PaymentReference = request.PaymentReference;
         return Ok(result);
     }
     [HttpPost]
@@ -57,16 +54,16 @@ public partial class NIPOutwardTransactionController : BaseController
 
         result = response;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        result.FundsTransferSessionID = request.FundsTransferSessionId;
+        result.SessionID = request.FundsTransferSessionId;
         return Ok(result);
     }
     [HttpPost]
     [Route("NameEnquiry")]
     public async Task<ActionResult> NameEnquiry([FromBody] NameEnquiryRequestDto request)
     {
-        var result = new NameEnquiryResult<NameEnquiryResponseDto?>();
+        var result = new Result<NameEnquiryResponseDto?>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new NameEnquiryResult<NameEnquiryResponseDto?>();
+        var response = new Result<NameEnquiryResponseDto?>();
 
         response = await nipOutwardNameEnquiryService.DoNameEnquiry(request);
 

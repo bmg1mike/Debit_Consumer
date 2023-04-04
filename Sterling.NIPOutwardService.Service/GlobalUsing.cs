@@ -34,5 +34,10 @@ global using Sterling.NIPOutwardService.Service.Services.Implementations.Kafka;
 global using Sterling.NIPOutwardService.Service.Services.Implementations.NIPOutwardLookup;
 global using NameEnquiry;
 global using Sterling.NIPOutwardService.Data.Helpers.Interfaces;
+global using System.ServiceModel;
+global using System.Xml;
+global using NIBBSNIPService;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
+global using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
 
 

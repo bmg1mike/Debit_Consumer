@@ -25,9 +25,9 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         this.utilityHelper = utilityHelper;
     }
 
-    public async Task<FundsTransferResult<FundsTransferResultContent>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
+    public async Task<Result<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
     {
-        var response = new FundsTransferResult<FundsTransferResultContent>();
+        var response = new Result<string>();
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APICalled = "NIPOutwardService";
         inboundLog.APIMethod = "FundsTransfer";
@@ -42,7 +42,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(createTransactionResult);
             await inboundLogService.CreateInboundLog(inboundLog);
-            return mapper.Map<FundsTransferResult<FundsTransferResultContent>>(createTransactionResult);
+            return mapper.Map<Result<string>>(createTransactionResult);
         }
 
         NIPOutwardTransaction nipOutwardTransaction = createTransactionResult.Content;
@@ -54,25 +54,24 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(generateFundsTransferSessionIdResult);
             await inboundLogService.CreateInboundLog(inboundLog);
-            return mapper.Map<FundsTransferResult<FundsTransferResultContent>>(generateFundsTransferSessionIdResult);
+            return mapper.Map<Result<string>>(generateFundsTransferSessionIdResult);
         }
 
         nipOutwardTransaction = generateFundsTransferSessionIdResult.Content;
 
         if(request.PriorityLevel == 1)
         {
-            var processTransactionResult =  await nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction);
-            response = BuildFundsTransferResponse<string>(processTransactionResult, nipOutwardTransaction);
+            response =  await nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction);
             inboundLog.OutboundLogs.AddRange(nipOutwardDebitProcessorService.GetOutboundLogs());
         }
         else
         {
-            var publishTransactionResponse = await nipOutwardDebitProducerService.PublishTransaction(createTransactionResult.Content);
-            response = BuildFundsTransferResponse<string>(publishTransactionResponse, nipOutwardTransaction);
+            response = await nipOutwardDebitProducerService.PublishTransaction(createTransactionResult.Content);
             inboundLog.OutboundLogs.AddRange(nipOutwardDebitProducerService.GetOutboundLogs());
         }           
         
-        
+        response.SessionID = nipOutwardTransaction.SessionID;
+
         inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
         await inboundLogService.CreateInboundLog(inboundLog);
@@ -146,27 +145,5 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             return result;
         }
          
-    }
-
-       public FundsTransferResult<FundsTransferResultContent> BuildFundsTransferResponse<T>(FundsTransferResult<T> fundsTransferResult, 
-    NIPOutwardTransaction nipOutwardTransaction)
-    {
-        FundsTransferResultContent fundsTransferResultContent = new () 
-        {
-            FundsTransferSessionId = nipOutwardTransaction.SessionID,
-            NameEnquirySessionId = nipOutwardTransaction.NameEnquirySessionID,
-        };
-
-        return new FundsTransferResult<FundsTransferResultContent> 
-        {
-            Content = fundsTransferResultContent,
-            PaymentReference = nipOutwardTransaction.PaymentReference,
-            Error = fundsTransferResult.Error,
-            ErrorMessage = fundsTransferResult.ErrorMessage,
-            Message = fundsTransferResult.Message,
-            IsSuccess = fundsTransferResult.IsSuccess,
-            RequestTime = fundsTransferResult.RequestTime,
-            ResponseTime = fundsTransferResult.ResponseTime,
-        };
     }
 }

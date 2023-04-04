@@ -66,7 +66,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         {
             var rawRequest = JsonConvert.SerializeObject(request);
             result.IsSuccess = false;
-            result.Message = "Duplicate request";
+            result.Message = "Transaction failed. Duplicate request.";
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
             "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
             

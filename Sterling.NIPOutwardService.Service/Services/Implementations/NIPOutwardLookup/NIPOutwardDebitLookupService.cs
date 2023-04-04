@@ -42,16 +42,16 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
         result.IsSuccess = false;
         try
         {
-            var checkIfRecordExistsResult = await nipOutwardLookupRepository.FindByNIPOutwardTransactionID(ID);
+            // var checkIfRecordExistsResult = await nipOutwardLookupRepository.FindByNIPOutwardTransactionID(ID);
 
-            if (checkIfRecordExistsResult)
-            {
-                result.IsSuccess = false;
-                result.Message = "Transaction failed. Duplicate Record.";
-                outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + $"Duplicate record in look up table. ID: {ID}";
-                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                return result;
-            }
+            // if (checkIfRecordExistsResult)
+            // {
+            //     result.IsSuccess = false;
+            //     result.Message = "Transaction failed. Duplicate Record.";
+            //     outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + $"Duplicate record in look up table. ID: {ID}";
+            //     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            //     return result;
+            // }
 
             var nipOutwardDebitLookup = new NIPOutwardDebitLookup {
                 NIPOutwardTransactionID = ID,
@@ -71,6 +71,14 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
                 result.Message = "Could not process transaction";
             }
 
+            
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)  when (ex.InnerException.Message.Contains("duplicate key"))
+        {
+            result.IsSuccess = false;
+            result.Message = "Transaction failed. Duplicate request.";
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+            "\r\n" + $@"NIP Outward Transaction ID: {ID} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }
         catch (System.Exception ex)

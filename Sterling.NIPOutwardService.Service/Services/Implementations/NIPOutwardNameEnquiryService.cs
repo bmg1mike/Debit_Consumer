@@ -1,11 +1,3 @@
-using System.ServiceModel;
-using System.Xml;
-using NIBBSNIPService;
-using Sterling.NIPOutwardService.Domain.Common.Generics;
-using Sterling.NIPOutwardService.Domain.Config.Implementations;
-using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
-using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
-
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
@@ -36,9 +28,9 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         this.inboundLogService = inboundLogService;
     }
 
-    public async Task<NameEnquiryResult<NameEnquiryResponseDto>> DoNameEnquiry(NameEnquiryRequestDto request)
+    public async Task<Result<NameEnquiryResponseDto>> DoNameEnquiry(NameEnquiryRequestDto request)
     {
-        var response = new NameEnquiryResult<NameEnquiryResponseDto>();
+        var response = new Result<NameEnquiryResponseDto>();
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APICalled = "NIPOutwardService";
         inboundLog.APIMethod = "NameEnquiry";
@@ -95,9 +87,9 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         return response;
     }
 
-     public NameEnquiryResult<NameEnquiryResponseDto> ValidateNameEnquiryResponseDto(NameEnquiryRequestDto request)
+     public Result<NameEnquiryResponseDto> ValidateNameEnquiryResponseDto(NameEnquiryRequestDto request)
     {
-        NameEnquiryResult<NameEnquiryResponseDto> result = new NameEnquiryResult<NameEnquiryResponseDto>();
+        Result<NameEnquiryResponseDto> result = new Result<NameEnquiryResponseDto>();
         result.IsSuccess = false;
 
         NameEnquiryRequestDtoValidator validator = new NameEnquiryRequestDtoValidator();

@@ -2,5 +2,5 @@ namespace Sterling.NIPOutwardService.Service.Services.Interfaces;
 
 public interface INIPOutwardDebitService 
 {
-    Task<FundsTransferResult<FundsTransferResultContent>> ProcessTransaction(CreateNIPOutwardTransactionDto request);
+    Task<Result<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request);
 }
