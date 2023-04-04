@@ -62,6 +62,15 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             result.Content = model;
 
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)  when (ex.InnerException.Message.Contains("duplicate key"))
+        {
+            var rawRequest = JsonConvert.SerializeObject(request);
+            result.IsSuccess = false;
+            result.Message = "Duplicate request";
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+            "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
+            
+        }
         catch (System.Exception ex)
         {
             var rawRequest = JsonConvert.SerializeObject(request);
@@ -71,6 +80,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }
+       
         outboundLog.ResponseDetails = result.Message;
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
         return result;

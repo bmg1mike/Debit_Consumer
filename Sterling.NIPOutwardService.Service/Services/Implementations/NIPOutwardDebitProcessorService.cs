@@ -1111,6 +1111,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             transaction.PrincipalResponse = response.Prin_Rsp;
             transaction.FeeResponse = response.Fee_Rsp;
             transaction.VatResponse = response.Vat_Rsp;
+            transaction.KafkaStatus = "K2";
             await nipOutwardTransactionService.Update(transaction);
             result.Content = transaction;
 

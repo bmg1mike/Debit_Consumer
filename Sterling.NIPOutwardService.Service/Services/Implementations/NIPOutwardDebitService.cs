@@ -51,7 +51,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         else
         {
             response = await nipOutwardDebitProducerService.PublishTransaction(createTransactionResult.Content);
-            inboundLog.OutboundLogs.Add(nipOutwardDebitProducerService.GetOutboundLog());
+            inboundLog.OutboundLogs.AddRange(nipOutwardDebitProducerService.GetOutboundLogs());
         }           
         
         

@@ -2,25 +2,30 @@ namespace Sterling.NIPOutwardService.Service.Services.Implementations.Kafka;
 
 public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
 {
-    public readonly IProducer<Null, string> producer;
-    public readonly AppSettings appSettings;
-    public readonly KafkaDebitProducerConfig kafkaDebitProducerConfig;
-    public readonly INIPOutwardDebitProcessorService nipOutwardDebitService;
+    private readonly IProducer<Null, string> producer;
+    private readonly AppSettings appSettings;
+    private readonly KafkaDebitProducerConfig kafkaDebitProducerConfig;
+    private readonly INIPOutwardDebitProcessorService nipOutwardDebitService;
+    private readonly INIPOutwardTransactionService nipOutwardTransactionService;
     private OutboundLog outboundLog;
+    private List<OutboundLog> outboundLogs;
 
     public NIPOutwardDebitProducerService(IProducer<Null, string> producer, IOptions<AppSettings> appSettings,
-        IOptions<KafkaDebitProducerConfig> kafkaDebitProducerConfig, INIPOutwardDebitProcessorService nipOutwardDebitService)
+        IOptions<KafkaDebitProducerConfig> kafkaDebitProducerConfig, INIPOutwardDebitProcessorService nipOutwardDebitService,
+        INIPOutwardTransactionService nipOutwardTransactionService)
     {
         this.producer = producer;
         this.appSettings = appSettings.Value;
         this.kafkaDebitProducerConfig = kafkaDebitProducerConfig.Value;
         this.nipOutwardDebitService = nipOutwardDebitService;
-        this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        this.outboundLogs = new List<OutboundLog> ();
+        this.nipOutwardTransactionService = nipOutwardTransactionService;
     }
 
     public async Task<FundsTransferResult<string>> PublishTransaction(NIPOutwardTransaction request)
     {
         FundsTransferResult<string> result = new FundsTransferResult<string>();
+        var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.PublishTransaction)}";
 
@@ -29,6 +34,10 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
             await ProduceAsync(request);
             result.IsSuccess = true;
             result.Message = "Transaction has been pushed for processing";
+
+            request.KafkaStatus = "K1";
+            await nipOutwardTransactionService.Update(request);
+            outboundLogs.Add(nipOutwardTransactionService.GetOutboundLog());
             
         }
         catch (System.Exception ex)
@@ -40,7 +49,7 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
         }
         //outboundLog.ResponseDetails = JsonConvert.SerializeObject(result);
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-
+        outboundLogs.Add(outboundLog);
         return result;
     }
 
@@ -50,10 +59,10 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
             Value = JsonConvert.SerializeObject(request),
         });
 
-    public OutboundLog GetOutboundLog()
+    public List<OutboundLog> GetOutboundLogs()
     {
-        var recordsToBeMoved = this.outboundLog;
-        this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        var recordsToBeMoved = this.outboundLogs;
+        this.outboundLogs = new List<OutboundLog>();
         return recordsToBeMoved;
     }
 }
