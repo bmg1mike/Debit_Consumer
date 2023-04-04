@@ -65,8 +65,6 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         .MaximumLength(10);
 
         RuleFor(x => x.SubAccountCode)
-        .NotNull()
-        .NotEmpty()
         .MaximumLength(4);
 
         RuleFor(x => x.NameEnquiryResponse)

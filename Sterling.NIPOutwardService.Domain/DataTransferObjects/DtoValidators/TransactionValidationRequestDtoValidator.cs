@@ -4,7 +4,7 @@ public class TransactionValidationRequestDtoValidator : AbstractValidator<Transa
 {
     public TransactionValidationRequestDtoValidator()
     {
-        RuleFor(x => x.PaymentReference)
+        RuleFor(x => x.FundsTransferSessionId)
         .NotNull()
         .NotEmpty()
         .MaximumLength(100);

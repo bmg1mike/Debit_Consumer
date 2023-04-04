@@ -10,4 +10,5 @@ public class Result<T>
    public bool IsSuccess { get; set; } = true;
    public DateTime RequestTime { get; set; } = DateTime.UtcNow;
    public DateTime ResponseTime { get; set; } = DateTime.UtcNow;
+   public string FundsTransferSessionID { get; set; }
 }

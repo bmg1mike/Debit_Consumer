@@ -24,10 +24,10 @@ public partial class NIPOutwardTransactionRepository : INIPOutwardTransactionRep
         return await dbContext.SaveChangesAsync(); 
     }
 
-    public async Task<bool> CheckIfTransactionIsSuccessful(string PaymentReference)
+    public async Task<bool> CheckIfTransactionIsSuccessful(string FundsTransferSessionId)
     {
         return await dbContext.tbl_NIPOutwardTransactions
-        .Where(e => e.PaymentReference == PaymentReference && e.NIBSSResponse == "00")
+        .Where(e => e.SessionID == FundsTransferSessionId && e.NIBSSResponse == "00")
         .AnyAsync();
     }
 

@@ -22,9 +22,9 @@ public partial class NIPOutwardTransactionController : BaseController
     [Route("FundsTransfer")]
     public async Task<ActionResult> Transfer([FromBody] CreateNIPOutwardTransactionDto request)
     {
-        var result = new FundsTransferResult<string>();
+        var result = new FundsTransferResult<FundsTransferResultContent?>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new FundsTransferResult<string>();
+        var response = new FundsTransferResult<FundsTransferResultContent?>();
         
         response =  await nipOutwardDebitService.ProcessTransaction(request);
 
@@ -32,7 +32,7 @@ public partial class NIPOutwardTransactionController : BaseController
         {
             response.ErrorMessage = response.Message;
         }
-        response.Content = string.Empty;
+        response.Content = null;
 
         result = response;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
@@ -57,16 +57,16 @@ public partial class NIPOutwardTransactionController : BaseController
 
         result = response;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        result.PaymentReference = request.PaymentReference;
+        result.FundsTransferSessionID = request.FundsTransferSessionId;
         return Ok(result);
     }
     [HttpPost]
     [Route("NameEnquiry")]
     public async Task<ActionResult> NameEnquiry([FromBody] NameEnquiryRequestDto request)
     {
-        var result = new NameEnquiryResult<NameEnquiryResponseDto>();
+        var result = new NameEnquiryResult<NameEnquiryResponseDto?>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new NameEnquiryResult<NameEnquiryResponseDto>();
+        var response = new NameEnquiryResult<NameEnquiryResponseDto?>();
 
         response = await nipOutwardNameEnquiryService.DoNameEnquiry(request);
 

@@ -8,9 +8,10 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     private InboundLog inboundLog;
     private readonly IInboundLogService inboundLogService;
     private readonly IMapper mapper;
+    private readonly IUtilityHelper utilityHelper;
     public NIPOutwardDebitService(INIPOutwardDebitProcessorService nipOutwardDebitProcessorService, 
     INIPOutwardDebitProducerService nipOutwardDebitProducerService, IInboundLogService inboundLogService,
-    INIPOutwardTransactionService nipOutwardTransactionService, IMapper mapper)
+    INIPOutwardTransactionService nipOutwardTransactionService, IMapper mapper, IUtilityHelper utilityHelper)
     {
         this.nipOutwardDebitProcessorService = nipOutwardDebitProcessorService;
         this.nipOutwardDebitProducerService = nipOutwardDebitProducerService;
@@ -21,11 +22,12 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         this.inboundLogService = inboundLogService;
         this.nipOutwardTransactionService = nipOutwardTransactionService;
         this.mapper = mapper;
+        this.utilityHelper = utilityHelper;
     }
 
-    public async Task<FundsTransferResult<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
+    public async Task<FundsTransferResult<FundsTransferResultContent>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
     {
-        var response = new FundsTransferResult<string>();
+        var response = new FundsTransferResult<FundsTransferResultContent>();
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APICalled = "NIPOutwardService";
         inboundLog.APIMethod = "FundsTransfer";
@@ -40,17 +42,33 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(createTransactionResult);
             await inboundLogService.CreateInboundLog(inboundLog);
-            return mapper.Map<FundsTransferResult<string>>(createTransactionResult);
+            return mapper.Map<FundsTransferResult<FundsTransferResultContent>>(createTransactionResult);
         }
+
+        NIPOutwardTransaction nipOutwardTransaction = createTransactionResult.Content;
+
+        var generateFundsTransferSessionIdResult = await GenerateFundsTransferSessionId(nipOutwardTransaction);
+
+        if(!generateFundsTransferSessionIdResult.IsSuccess)
+        {
+            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(generateFundsTransferSessionIdResult);
+            await inboundLogService.CreateInboundLog(inboundLog);
+            return mapper.Map<FundsTransferResult<FundsTransferResultContent>>(generateFundsTransferSessionIdResult);
+        }
+
+        nipOutwardTransaction = generateFundsTransferSessionIdResult.Content;
 
         if(request.PriorityLevel == 1)
         {
-            response =  await nipOutwardDebitProcessorService.ProcessTransaction(createTransactionResult.Content);
+            var processTransactionResult =  await nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction);
+            response = BuildFundsTransferResponse<string>(processTransactionResult, nipOutwardTransaction);
             inboundLog.OutboundLogs.AddRange(nipOutwardDebitProcessorService.GetOutboundLogs());
         }
         else
         {
-            response = await nipOutwardDebitProducerService.PublishTransaction(createTransactionResult.Content);
+            var publishTransactionResponse = await nipOutwardDebitProducerService.PublishTransaction(createTransactionResult.Content);
+            response = BuildFundsTransferResponse<string>(publishTransactionResponse, nipOutwardTransaction);
             inboundLog.OutboundLogs.AddRange(nipOutwardDebitProducerService.GetOutboundLogs());
         }           
         
@@ -82,5 +100,73 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             Exception Details: {ex.Message} {ex.StackTrace}";
             return result;
         }
+    }
+
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> GenerateFundsTransferSessionId(NIPOutwardTransaction transaction)
+    {
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
+        OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GenerateFundsTransferSessionId)}";
+        result.IsSuccess = false;
+
+        try
+       { 
+            #region GenerateFTSessionId
+                transaction.SessionID = utilityHelper.GenerateFundsTransferSessionId(transaction.ID);
+                var recordsUpdated = await nipOutwardTransactionService.Update(transaction);
+
+                if (recordsUpdated < 1)
+                {
+                    outboundLog.ExceptionDetails =  "Unable to update FT SessionId for transaction with RefId " + transaction.ID ;
+                    inboundLog.OutboundLogs.Add(outboundLog);
+                    transaction.StatusFlag = 0;
+                    await nipOutwardTransactionService.Update(transaction);
+                    result.Message = "Internal Server Error";
+                    result.IsSuccess = false;
+                }
+                else{
+                    result.IsSuccess = true;
+                    result.Content = transaction;
+                }
+                
+                #endregion 
+
+            result.Content = transaction;
+            return result;
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = "Internal Server Error";
+            var request = JsonConvert.SerializeObject(transaction);
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
+            inboundLog.OutboundLogs.Add(outboundLog);
+            return result;
+        }
+         
+    }
+
+       public FundsTransferResult<FundsTransferResultContent> BuildFundsTransferResponse<T>(FundsTransferResult<T> fundsTransferResult, 
+    NIPOutwardTransaction nipOutwardTransaction)
+    {
+        FundsTransferResultContent fundsTransferResultContent = new () 
+        {
+            FundsTransferSessionId = nipOutwardTransaction.SessionID,
+            NameEnquirySessionId = nipOutwardTransaction.NameEnquirySessionID,
+        };
+
+        return new FundsTransferResult<FundsTransferResultContent> 
+        {
+            Content = fundsTransferResultContent,
+            PaymentReference = nipOutwardTransaction.PaymentReference,
+            Error = fundsTransferResult.Error,
+            ErrorMessage = fundsTransferResult.ErrorMessage,
+            Message = fundsTransferResult.Message,
+            IsSuccess = fundsTransferResult.IsSuccess,
+            RequestTime = fundsTransferResult.RequestTime,
+            ResponseTime = fundsTransferResult.ResponseTime,
+        };
     }
 }
