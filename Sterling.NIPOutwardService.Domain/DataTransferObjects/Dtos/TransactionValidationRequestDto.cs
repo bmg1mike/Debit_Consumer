@@ -2,5 +2,5 @@ namespace Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos;
 
 public class TransactionValidationRequestDto 
 {
-    public string FundsTransferSessionId { get; set; }
+    public string SessionID { get; set; }
 }

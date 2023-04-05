@@ -131,7 +131,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
     {
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccesful)}";
-        inboundLog.RequestDetails = $@"PaymentReference {request.FundsTransferSessionId}";
+        inboundLog.RequestDetails = $@"PaymentReference {request.SessionID}";
 
         FundsTransferResult<string> result = new FundsTransferResult<string>();
         result.IsSuccess = false;
@@ -150,7 +150,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             var checkIfTransactionIsSuccessfulResult = false;
             await retryPolicy.ExecuteAsync(async () =>
             {
-                checkIfTransactionIsSuccessfulResult = await repository.CheckIfTransactionIsSuccessful(request.FundsTransferSessionId);
+                checkIfTransactionIsSuccessfulResult = await repository.CheckIfTransactionIsSuccessful(request.SessionID);
 
             });
 
@@ -171,7 +171,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         {
             result.IsSuccess = false;
             result.Message = "Internal Server Error";
-            inboundLog.ExceptionDetails = $@"PaymentReference {request.FundsTransferSessionId} Exception Details: {ex.Message} {ex.StackTrace}";
+            inboundLog.ExceptionDetails = $@"PaymentReference {request.SessionID} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }
         inboundLog.OutboundLogs.Add(outboundLog);

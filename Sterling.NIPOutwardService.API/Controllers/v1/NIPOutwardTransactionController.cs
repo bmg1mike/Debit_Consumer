@@ -54,7 +54,7 @@ public partial class NIPOutwardTransactionController : BaseController
 
         result = response;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        result.SessionID = request.FundsTransferSessionId;
+        result.SessionID = request.SessionID;
         return Ok(result);
     }
     [HttpPost]
