@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
 
 namespace Sterling.NIPOutwardService.API.Controllers.v1;
@@ -18,11 +19,11 @@ public partial class NIPOutwardTransactionController : BaseController
     }
     [HttpPost]
     [Route("FundsTransfer")]
-    public async Task<ActionResult> FundsTransfer([FromBody] CreateNIPOutwardTransactionDto request)
+    public async Task<ActionResult> FundsTransfer([FromBody][Required] CreateNIPOutwardTransactionDto request)
     {
-        var result = new Result<string>();
+        var result = new FundsTransferResult<string>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new Result<string>();
+        var response = new FundsTransferResult<string>();
         
         response =  await nipOutwardDebitService.ProcessTransaction(request);
 
@@ -33,16 +34,17 @@ public partial class NIPOutwardTransactionController : BaseController
         response.Content = string.Empty;
 
         result = response;
+        result.PaymentReference = request.PaymentReference;
         result.ResponseTime = DateTime.UtcNow.AddHours(1);
         return Ok(result);
     }
     [HttpPost]
     [Route("TransactionValidation")]
-    public async Task<ActionResult> TransactionValidation([FromBody] TransactionValidationRequestDto request)
+    public async Task<ActionResult> TransactionValidation([FromBody][Required] TransactionValidationRequestDto request)
     {
-        var result = new FundsTransferResult<string>();
+        var result = new Result<string>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new FundsTransferResult<string>();
+        var response = new Result<string>();
         
         response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccesful(request);
 
@@ -59,7 +61,7 @@ public partial class NIPOutwardTransactionController : BaseController
     }
     [HttpPost]
     [Route("NameEnquiry")]
-    public async Task<ActionResult> NameEnquiry([FromBody] NameEnquiryRequestDto request)
+    public async Task<ActionResult> NameEnquiry([FromBody][Required] NameEnquiryRequestDto request)
     {
         var result = new Result<NameEnquiryResponseDto?>();
         result.RequestTime = DateTime.UtcNow.AddHours(1);

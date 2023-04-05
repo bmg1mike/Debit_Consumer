@@ -5,7 +5,7 @@ public class NameEnquiryRequestDtoValidator : AbstractValidator<NameEnquiryReque
     public NameEnquiryRequestDtoValidator()
     {
         RuleFor(x => x.SessionID)
-        .MaximumLength(30)
+        .Length(30)
         .NotEmpty()
         .NotNull();
 
@@ -15,9 +15,7 @@ public class NameEnquiryRequestDtoValidator : AbstractValidator<NameEnquiryReque
         .MaximumLength(10);
 
         RuleFor(x => x.ChannelCode)
-        .NotNull()
-        .NotEmpty()
-        .MaximumLength(10);
+        .NotNull();
 
         RuleFor(x => x.AccountNumber)
         .NotNull()

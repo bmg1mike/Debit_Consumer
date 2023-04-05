@@ -5,7 +5,7 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
     public CreateNIPOutwardTransactionDtoValidator()
     {
         RuleFor(x => x.NameEnquirySessionID)
-        .MaximumLength(30)
+        .Length(30)
         .NotEmpty()
         .NotNull();
 

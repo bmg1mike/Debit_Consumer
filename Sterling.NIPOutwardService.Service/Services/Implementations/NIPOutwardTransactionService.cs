@@ -127,13 +127,13 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    public async Task<FundsTransferResult<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequestDto request)
+    public async Task<Result<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequestDto request)
     {
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccesful)}";
         inboundLog.RequestDetails = $@"PaymentReference {request.SessionID}";
 
-        FundsTransferResult<string> result = new FundsTransferResult<string>();
+        Result<string> result = new Result<string>();
         result.IsSuccess = false;
         try
         {

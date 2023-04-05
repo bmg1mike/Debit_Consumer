@@ -208,7 +208,9 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             xmlDoc.LoadXml(xml);
             response.SessionID = xmlDoc.GetElementsByTagName("SessionID").Item(0).InnerText;
             response.DestinationInstitutionCode = xmlDoc.GetElementsByTagName("DestinationInstitutionCode").Item(0).InnerText;
-            response.ChannelCode = xmlDoc.GetElementsByTagName("ChannelCode").Item(0).InnerText;
+            byte ChannelCode = 0;
+            var ChannelCodeValid = byte.TryParse(xmlDoc.GetElementsByTagName("ChannelCode").Item(0).InnerText, out ChannelCode);
+            response.ChannelCode = ChannelCode;
             response.AccountNumber = xmlDoc.GetElementsByTagName("AccountNumber").Item(0).InnerText;
             response.AccountName = xmlDoc.GetElementsByTagName("AccountName").Item(0).InnerText;
             //clean account name

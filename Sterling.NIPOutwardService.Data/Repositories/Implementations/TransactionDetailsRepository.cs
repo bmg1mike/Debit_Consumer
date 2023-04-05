@@ -43,13 +43,13 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                         {
                             command.CommandType = CommandType.Text;
                             command.Parameters.AddWithValue("@NameEnquirySessionID", NameEnquirySessionId);
-
+                            connection.Open();
 
                             await retryPolicy.ExecuteAsync(async () =>
                             {
                                 SqlDataReader record;
 
-                                connection.Open();
+                                
                                 record = await command.ExecuteReaderAsync();
 
                                 if (record.HasRows)
@@ -93,9 +93,10 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@amt", amt);
+                    connection.Open();
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {
@@ -142,10 +143,10 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                 {
                     command.CommandType = CommandType.Text;
                     command.Parameters.AddWithValue("@DebitAccountNumber", debitAccountNumber);
-
+                    connection.Open();
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {
@@ -199,9 +200,10 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                 {
                     command.CommandType = CommandType.Text;
                     command.Parameters.AddWithValue("@dt", dt);
+                    connection.Open();
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {
@@ -238,9 +240,10 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                 {
                     command.CommandType = CommandType.Text;
                     command.Parameters.AddWithValue("@bankCode", bankCode);
+                    connection.Open();
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {
@@ -277,9 +280,10 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                 {
                     command.CommandType = CommandType.Text;
                     command.Parameters.AddWithValue("@ledgerCode", ledgerCode);
+                    connection.Open();
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {
@@ -316,9 +320,10 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                 {
                     command.CommandType = CommandType.Text;
                     command.Parameters.AddWithValue("@lc", led_code);
+                    connection.Open();
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {
@@ -359,7 +364,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                     command.Parameters.AddWithValue("@accountNo", accountNo);
                     await retryPolicy.ExecuteAsync(async () =>
                     {
-                        connection.Open();
+                        
                         var dr = await command.ExecuteReaderAsync();
                         if (dr.HasRows)
                         {

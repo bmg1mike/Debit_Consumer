@@ -71,6 +71,7 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
                 result.Message = "Could not process transaction";
             }
 
+            result.Content = nipOutwardDebitLookup;
             
         }
         catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)  when (ex.InnerException.Message.Contains("duplicate key"))
