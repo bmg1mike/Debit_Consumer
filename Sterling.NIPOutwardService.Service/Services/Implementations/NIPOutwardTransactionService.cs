@@ -68,7 +68,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             result.IsSuccess = false;
             result.Message = "Transaction failed. Duplicate request.";
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-            "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
+            "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.InnerException.Message} {ex.StackTrace}";
             
         }
         catch (System.Exception ex)

@@ -20,23 +20,19 @@ public partial class NIPOutwardTransactionController : BaseController
     [HttpPost]
     [Route("FundsTransfer")]
     public async Task<ActionResult> FundsTransfer([FromBody][Required] CreateNIPOutwardTransactionDto request)
-    {
-        var result = new FundsTransferResult<string>();
-        result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new FundsTransferResult<string>();
-        
-        response =  await nipOutwardDebitService.ProcessTransaction(request);
+    {        
+        FundsTransferResult<string> response =  await nipOutwardDebitService.ProcessTransaction(request);
 
         if(!response.IsSuccess)
         {
             response.ErrorMessage = response.Message;
         }
-        response.Content = string.Empty;
+        //response.Content = string.Empty;
 
-        result = response;
-        result.PaymentReference = request.PaymentReference;
-        result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        return Ok(result);
+        //result = response;
+        //result.PaymentReference = request.PaymentReference;
+        //result.ResponseTime = DateTime.UtcNow.AddHours(1);
+        return Ok(response);
     }
     [HttpPost]
     [Route("TransactionValidation")]

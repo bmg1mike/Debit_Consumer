@@ -28,6 +28,9 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     public async Task<FundsTransferResult<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
     {
         var response = new FundsTransferResult<string>();
+        response.RequestTime = DateTime.UtcNow.AddHours(1);
+        response.PaymentReference = request.PaymentReference;
+
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APICalled = "NIPOutwardService";
         inboundLog.APIMethod = "FundsTransfer";
@@ -36,13 +39,15 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         
         var createTransactionResult = await CreateTransaction(request);
         
-
         if(!createTransactionResult.IsSuccess)
         {
+            response = mapper.Map<FundsTransferResult<string>>(createTransactionResult);
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = string.Empty;
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            inboundLog.ResponseDetails = JsonConvert.SerializeObject(createTransactionResult);
             await inboundLogService.CreateInboundLog(inboundLog);
-            return  mapper.Map<FundsTransferResult<string>>(createTransactionResult);
+            return response;
         }
 
         NIPOutwardTransaction nipOutwardTransaction = createTransactionResult.Content;
@@ -51,10 +56,13 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
 
         if(!generateFundsTransferSessionIdResult.IsSuccess)
         {
+            response = mapper.Map<FundsTransferResult<string>>(generateFundsTransferSessionIdResult);
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = string.Empty;
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            inboundLog.ResponseDetails = JsonConvert.SerializeObject(generateFundsTransferSessionIdResult);
             await inboundLogService.CreateInboundLog(inboundLog);
-            return mapper.Map<FundsTransferResult<string>>(generateFundsTransferSessionIdResult);
+            return response;
         }
 
         nipOutwardTransaction = generateFundsTransferSessionIdResult.Content;
@@ -71,9 +79,11 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         }           
         
         response.SessionID = nipOutwardTransaction.SessionID;
-
-        inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        response.ResponseTime = DateTime.UtcNow.AddHours(1);
+        response.Content = string.Empty;
         inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
+        inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        
         await inboundLogService.CreateInboundLog(inboundLog);
         
         return response;

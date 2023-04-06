@@ -79,7 +79,7 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
             result.IsSuccess = false;
             result.Message = "Transaction failed. Duplicate request.";
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-            "\r\n" + $@"NIP Outward Transaction ID: {ID} Exception Details: {ex.Message} {ex.StackTrace}";
+            "\r\n" + $@"NIP Outward Transaction ID: {ID} Exception Details: {ex.InnerException.Message} {ex.StackTrace}";
             
         }
         catch (System.Exception ex)

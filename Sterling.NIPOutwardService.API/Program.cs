@@ -54,6 +54,7 @@ ProducerConfig kafkaDebitProducerConfig = builder.Configuration
 ProducerConfig kafkaSendToNIBSSProducerConfig = builder.Configuration
         .GetSection("KafkaSendToNIBSSProducerConfig:ClientConfig")
         .Get<ProducerConfig>();
+        
 
 builder.Services.AddHealthChecks()
    .AddUrlGroup(new Uri    

@@ -32,7 +32,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                 nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
             }
 
-            ParallelLoopResult parallelLoopResult = Parallel.ForEach(nipOutwardTransactionResults, async transactionResult => 
+            ParallelLoopResult parallelLoopResult = Parallel.ForEach(nipOutwardTransactionResults, transactionResult => 
             {
                 try
                 {
@@ -45,13 +45,10 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                             using (var scope = serviceProvider.CreateScope()) // this will use `IServiceScopeFactory` internally
                             {
                                 var nipOutwardDebitService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitProcessorService>();
-                                await nipOutwardDebitService.ProcessTransaction(nipOutwardTransaction);
+                                var result = nipOutwardDebitService.ProcessTransaction(nipOutwardTransaction).Result;
                             }
                         }
-
-                        
                     }
-
                 }
                 catch (System.Exception ex)
                 {
