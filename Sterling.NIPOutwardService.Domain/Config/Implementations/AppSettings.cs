@@ -5,7 +5,6 @@ public class AppSettings
     public string SqlServerDbConnectionString { get; set; }
     public string T24DbConnectionString { get; set; }
     public string NameEnquirySoapService { get; set; }
-    public string VTellerSoapService { get; set; }
     public string SterlingBankCode { get; set; }
     public string SterlingProSuspenseAccount { get; set; }
     public string ProxySwitch { get; set; }

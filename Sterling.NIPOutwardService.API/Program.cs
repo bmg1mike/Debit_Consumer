@@ -1,3 +1,5 @@
+using Confluent.Kafka;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -45,10 +47,18 @@ builder.Services.AddSwaggerGen(
         }
 );
 
+ProducerConfig kafkaDebitProducerConfig = builder.Configuration
+        .GetSection("KafkaDebitProducerConfig:ClientConfig")
+        .Get<ProducerConfig>();
+
+ProducerConfig kafkaSendToNIBSSProducerConfig = builder.Configuration
+        .GetSection("KafkaSendToNIBSSProducerConfig:ClientConfig")
+        .Get<ProducerConfig>();
+
 builder.Services.AddHealthChecks()
    .AddUrlGroup(new Uri    
             ("https://www.google.com"),
-             name: "Google",
+             name: "Internet Connectivity",
              failureStatus: HealthStatus.Degraded)
     .AddUrlGroup(new Uri    
             (builder.Configuration.GetSection("AppSettings:FraudBaseUrl").Value),
@@ -59,7 +69,7 @@ builder.Services.AddHealthChecks()
              name: "Name Enquiry",
              failureStatus: HealthStatus.Degraded)
     .AddUrlGroup(new Uri    
-            (builder.Configuration.GetSection("AppSettings:VTellerSoapService").Value),
+            (builder.Configuration.GetSection("AppSettings:VtellerProperties:BaseUrl").Value),
              name: "VTeller",
              failureStatus: HealthStatus.Degraded)
     .AddSqlServer(
@@ -71,7 +81,17 @@ builder.Services.AddHealthChecks()
             failureStatus: HealthStatus.Degraded)
     .AddOracle(builder.Configuration.GetSection("AppSettings:T24DbConnectionString").Value,
             name: "T24 Oracle Database",
-            failureStatus: HealthStatus.Degraded);
+            failureStatus: HealthStatus.Degraded)
+    .AddKafka(kafkaDebitProducerConfig,
+            name: "Kafka Debit Producer",
+            failureStatus: HealthStatus.Degraded)
+    .AddKafka(kafkaSendToNIBSSProducerConfig,
+            name: "Kafka Send To NIBSS Producer",
+            failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("ApiSettings:NIPNIBSSService").Value),
+             name: "NIBSS Web Service",
+             failureStatus: HealthStatus.Degraded);
 
 builder.Services.AddCors(p => p.AddPolicy("corsapp", builder =>
     {
