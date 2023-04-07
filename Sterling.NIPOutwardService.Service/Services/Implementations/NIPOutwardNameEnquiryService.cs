@@ -142,47 +142,10 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             };
 
             NIPInterfaceClient nipClient = new NIPInterfaceClient(binding, new EndpointAddress(apiSettings.NIPNIBSSService));
-            //Nibbslive.NFPBankSimulationNoCryptoService nr = new Nibbslive.NFPBankSimulationNoCryptoService();            
-            //set a proxy
-            // bool useproxy = Convert.ToBoolean(ConfigurationManager.AppSettings["proxyUse"]);
-            // if (useproxy)
-            // {
-            //     string url = Convert.ToString(ConfigurationManager.AppSettings["proxyURL"]);
-            //     int port = Convert.ToInt16(ConfigurationManager.AppSettings["proxyPort"]);
-            //     WebProxy p = new WebProxy(url, port);
-            //     nr.Proxy = p;
-            // }
-            // string InstCode = ConfigurationSettings.AppSettings["AppZoneIntCode"].ToString();
-            // if (AccountNumber.StartsWith("99") && DestinationInstitutionCode == "000001")
-            // {
-            //     try
-            //     {
-            //         //call bank one webservice
-            //         StringBuilder sb = new StringBuilder();
-            //         sb.Append("<AccountNameVerificationRequest>");
-            //         sb.Append("<InstitutionCode>" + InstCode + "</InstitutionCode>");
-            //         sb.Append("<AccountNumber>" + AccountNumber + "</AccountNumber>");
-            //         sb.Append("</AccountNameVerificationRequest>");
-            //         //init() pn = init();
-            //         string rsp1 = init().BankOneGetAccountName(sb.ToString());
-            //         //Deserialize
-            //         XmlDocument xmlDoc = new XmlDocument();
-            //         xmlDoc.LoadXml(rsp1);
-            //         ok = readResponse(rsp1);
-            //     }
-
-            //     catch (Exception ex)
-            //     {
-            //         AccountName = "";
-            //         ResponseCode = "07";
-            //     }
-            // }
-            // else
-            // {
+           
             string str = ssm.Encrypt(rqt.ToString());
-                xml = nipClient.nameenquirysingleitem(str);
-            //ok = readResponse();
-            //}
+            xml = nipClient.nameenquirysingleitem(str);
+            
             ok = true;
         }
         catch (Exception)

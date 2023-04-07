@@ -51,6 +51,8 @@ public class NIPOutwardTransaction
     public string KafkaStatus { get; set; }
     public int PriorityLevel { get; set; }
     public string NIBSSResponse { get; set; }
+    public int OutwardTransactionType { get; set; }
+    public int AppsTransactionType { get; set; }
     
 }
 

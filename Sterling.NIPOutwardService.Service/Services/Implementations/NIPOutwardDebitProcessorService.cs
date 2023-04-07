@@ -17,6 +17,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     private readonly IIncomeAccountRepository incomeAccountRepository;
     private readonly IVtellerService vtellerService;
     private readonly INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService;
+    private readonly INIPOutwardNameEnquiryService nipOutwardNameEnquiryService;
 
     public NIPOutwardDebitProcessorService(INIPOutwardTransactionService nipOutwardTransactionService, 
     IInboundLogService inboundLogService, IOptions<AppSettings> appSettings, IMapper mapper,
@@ -24,7 +25,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     IUtilityHelper utilityHelper, IFraudAnalyticsService fraudAnalyticsService, 
     ITransactionAmountLimitService transactionAmountLimitService, IDebitAccountRepository debitAccountRepository,
     IIncomeAccountRepository incomeAccountRepository, IVtellerService vtellerService,
-    INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService)
+    INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService, 
+    INIPOutwardNameEnquiryService nipOutwardNameEnquiryService)
     {
         this.nipOutwardTransactionService = nipOutwardTransactionService;
         this.inboundLogService = inboundLogService;
@@ -40,6 +42,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         this.incomeAccountRepository = incomeAccountRepository;
         this.vtellerService = vtellerService;
         this.nipOutwardSendToNIBSSProducerService = nipOutwardSendToNIBSSProducerService;
+        this.nipOutwardNameEnquiryService = nipOutwardNameEnquiryService;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
         {
@@ -303,41 +306,61 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             if (transaction.DateAdded?.Date != DateTime.UtcNow.AddHours(1).Date)
             {
                 transaction.NameEnquirySessionID = await transactionDetailsRepository.GenerateNameEnquirySessionId(transaction.NameEnquirySessionID);
-                NameEnquiry.NewIBSSoapClient newibs = 
-                new NameEnquiry.NewIBSSoapClient(NameEnquiry.NewIBSSoapClient.EndpointConfiguration.NewIBSSoap, appSettings.NameEnquirySoapService);
-                //log.Info("calling  Name Enquiry for RefId " + transaction.Refid);
-                NameEnquiryResponse nameEnquiryResponse = new NameEnquiryResponse();
                 outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLog.APICalled = "NameEnquiry";
                 outboundLog.APIMethod = "NameEnquiry";
                 outboundLog.RequestDetails = $@"SessionIdNE:{transaction.NameEnquirySessionID} 
                 BankCode:{transaction.BeneficiaryBankCode} ChannelCode:{transaction.ChannelCode} AccountNumber:{transaction.CreditAccountNumber}";
 
-                await retryPolicy.ExecuteAsync(async () =>
+                NameEnquiryRequestDto nameEnquiryRequest = new NameEnquiryRequestDto
                 {
-                    nameEnquiryResponse = await newibs.NameEnquiryAsync(transaction.NameEnquirySessionID, transaction.BeneficiaryBankCode, 
-                    transaction.ChannelCode.ToString(), transaction.CreditAccountNumber);
-                });
-                
-                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                outboundLog.ResponseDetails = nameEnquiryResponse?.Body?.NameEnquiryResult;
-                outboundLogs.Add(outboundLog);
-                //log.Info("The Response that came back for Name Enquiry is " + namersp + " for RefId " + transaction.Refid);
-                var namerspArray = nameEnquiryResponse?.Body?.NameEnquiryResult?.Split(':'); 
-                if (namerspArray?[0] == "00")
+                    SessionID = transaction.NameEnquirySessionID,
+                    DestinationInstitutionCode = transaction.BeneficiaryBankCode,
+                    ChannelCode = transaction.ChannelCode,
+                    AccountNumber = transaction.CreditAccountNumber
+                };
+
+                var nameEnquiryResult = await nipOutwardNameEnquiryService.DoNameEnquiry(nameEnquiryRequest);
+
+                if(nameEnquiryResult.IsSuccess && nameEnquiryResult?.Content?.ResponseCode == "00")
                 {
                     transaction.NameEnquirySessionID = transaction.NameEnquirySessionID;
-                    transaction.CreditAccountName = namerspArray[1];
-                    transaction.BeneficiaryBVN = namerspArray[2];
-                    transaction.BeneficiaryKYCLevel = namerspArray[3];
-                    transaction.NameEnquiryResponse = namerspArray[0];
+                    transaction.CreditAccountName = nameEnquiryResult.Content.AccountNumber;
+                    transaction.BeneficiaryBVN =  nameEnquiryResult.Content.BankVerificationNumber;
+                    transaction.BeneficiaryKYCLevel =  nameEnquiryResult.Content.KYCLevel;
+                    transaction.NameEnquiryResponse =  nameEnquiryResult.Content.ResponseCode;
                 }
                 else
                 {
                     result.IsSuccess = false;
                     result.Message = "Name enquiry failed";
                     return result;
-                }                
+                }   
+                // await retryPolicy.ExecuteAsync(async () =>
+                // {
+                //     nameEnquiryResponse = await newibs.NameEnquiryAsync(transaction.NameEnquirySessionID, transaction.BeneficiaryBankCode, 
+                //     transaction.ChannelCode.ToString(), transaction.CreditAccountNumber);
+                // });
+                
+                // outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                // outboundLog.ResponseDetails = nameEnquiryResponse?.Body?.NameEnquiryResult;
+                // outboundLogs.Add(outboundLog);
+                // //log.Info("The Response that came back for Name Enquiry is " + namersp + " for RefId " + transaction.Refid);
+                // var namerspArray = nameEnquiryResponse?.Body?.NameEnquiryResult?.Split(':'); 
+                // if (namerspArray?[0] == "00")
+                // {
+                //     transaction.NameEnquirySessionID = transaction.NameEnquirySessionID;
+                //     transaction.CreditAccountName = namerspArray[1];
+                //     transaction.BeneficiaryBVN = namerspArray[2];
+                //     transaction.BeneficiaryKYCLevel = namerspArray[3];
+                //     transaction.NameEnquiryResponse = namerspArray[0];
+                // }
+                // else
+                // {
+                //     result.IsSuccess = false;
+                //     result.Message = "Name enquiry failed";
+                //     return result;
+                // }                
                    
             }
 
@@ -1113,6 +1136,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             transaction.FeeResponse = response.Fee_Rsp;
             transaction.VatResponse = response.Vat_Rsp;
             transaction.KafkaStatus = "K2";
+            transaction.AppsTransactionType = 1;
+            transaction.OutwardTransactionType = 1;
             await nipOutwardTransactionService.Update(transaction);
             result.Content = transaction;
 

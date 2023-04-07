@@ -32,7 +32,6 @@ global using Sterling.NIPOutwardService.Service.Services.Interfaces.Kafka;
 global using Polly.Extensions.Http;
 global using Sterling.NIPOutwardService.Service.Services.Implementations.Kafka;
 global using Sterling.NIPOutwardService.Service.Services.Implementations.NIPOutwardLookup;
-global using NameEnquiry;
 global using Sterling.NIPOutwardService.Data.Helpers.Interfaces;
 global using System.ServiceModel;
 global using System.Xml;
