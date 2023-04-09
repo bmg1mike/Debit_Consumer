@@ -119,14 +119,14 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             nipOutwardTransaction.OriginatorEmail = getDebitAccountDetailsResult.Content.DebitAccountDetails.Email;
             vTellerTransactionDto = getDebitAccountDetailsResult.Content.CreateVTellerTransactionDto;
 
-            var doFraudCheckResult = await DoFraudCheck(nipOutwardTransaction, checkLookupResult.Content);
+            // var doFraudCheckResult = await DoFraudCheck(nipOutwardTransaction, checkLookupResult.Content);
 
-             if (!doFraudCheckResult.IsSuccess)
-            {
-                return mapper.Map<FundsTransferResult<string>>(doFraudCheckResult);
-            }
+            //  if (!doFraudCheckResult.IsSuccess)
+            // {
+            //     return mapper.Map<FundsTransferResult<string>>(doFraudCheckResult);
+            // }
 
-            nipOutwardTransaction = doFraudCheckResult.Content;
+            // nipOutwardTransaction = doFraudCheckResult.Content;
 
             var appIDCheckResult = await AppIDCheck(nipOutwardTransaction);
 

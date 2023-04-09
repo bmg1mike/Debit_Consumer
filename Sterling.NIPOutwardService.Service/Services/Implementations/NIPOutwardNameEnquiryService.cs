@@ -92,13 +92,13 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             {
                 var nipOutwardNameEnquiry = new NIPOutwardNameEnquiry 
                 {
-                    ResponseCode = nameEnquiryDetailsResult.ResponseCode,
-                    SessionID = nameEnquiryDetailsResult.SessionID,
-                    AccountName = nameEnquiryDetailsResult.AccountName,
-                    BVN = nameEnquiryDetailsResult.BVN,
-                    KYCLevel = nameEnquiryDetailsResult.KYCLevel,
-                    AccountNumber = nameEnquiryDetailsResult.AccountNumber,
-                    DestinationInstitutionCode = nameEnquiryDetailsResult.DestinationInstitutionCode,
+                    ResponseCode = nameEnquiryResponse.ResponseCode,
+                    SessionID = nameEnquiryResponse.SessionID,
+                    AccountName = nameEnquiryResponse.AccountName,
+                    BVN = nameEnquiryResponse.BankVerificationNumber,
+                    KYCLevel = nameEnquiryResponse.KYCLevel,
+                    AccountNumber = nameEnquiryResponse.AccountNumber,
+                    DestinationInstitutionCode = nameEnquiryResponse.DestinationInstitutionCode,
                     DateAdded = DateTime.UtcNow.AddHours(1),
                 };
 
