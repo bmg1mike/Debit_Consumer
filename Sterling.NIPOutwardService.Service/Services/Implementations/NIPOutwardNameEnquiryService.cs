@@ -13,10 +13,11 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
     private readonly APISettings apiSettings;
     private InboundLog inboundLog;
     private readonly IInboundLogService inboundLogService;
+    private readonly INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository;
 
 
     public NIPOutwardNameEnquiryService(ISSM ssm, IOptions<AppSettings> appSettings, IOptions<APISettings> apiSettings,
-        IInboundLogService inboundLogService)
+        IInboundLogService inboundLogService, INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository)
     {
         this.ssm = ssm;
         this.appSettings = appSettings.Value;
@@ -26,6 +27,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             OutboundLogs = new List<OutboundLog>(),
             };
         this.inboundLogService = inboundLogService;
+        this.nipOutwardNameEnquiryRepository = nipOutwardNameEnquiryRepository;
     }
 
     public async Task<Result<NameEnquiryResponseDto>> DoNameEnquiry(NameEnquiryRequestDto request)
@@ -46,9 +48,30 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             return validationResult;
         }
 
-        //string msg = "";
-        //string responsecodeVal = "";
-        //string AcctNameval = "";
+        var nameEnquiryDetailsResult = await nipOutwardNameEnquiryRepository
+        .Get(request.DestinationInstitutionCode, request.AccountNumber);
+
+        var nameEnquiryResponse = new NameEnquiryResponseDto();
+        if (nameEnquiryDetailsResult != null && nameEnquiryDetailsResult.ResponseCode == "00")
+        {
+            nameEnquiryResponse.AccountName = nameEnquiryDetailsResult.AccountName;
+            nameEnquiryResponse.AccountNumber = nameEnquiryDetailsResult.AccountNumber;
+            nameEnquiryResponse.BankVerificationNumber = nameEnquiryDetailsResult.BVN;
+            nameEnquiryResponse.DestinationInstitutionCode = nameEnquiryDetailsResult.DestinationInstitutionCode;
+            nameEnquiryResponse.ChannelCode = request.ChannelCode;
+            nameEnquiryResponse.KYCLevel = nameEnquiryDetailsResult.KYCLevel;
+            nameEnquiryResponse.SessionID = request.SessionID;
+            nameEnquiryResponse.ResponseCode = nameEnquiryDetailsResult.ResponseCode;
+
+            response.Content = nameEnquiryResponse;
+            response.Message = "Success";
+            response.IsSuccess = true;
+
+            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
+            await inboundLogService.CreateInboundLog(inboundLog);
+            return response;
+        }
         
         createRequest(request);
 
@@ -62,10 +85,33 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         }
         else
         {
-            var nameEnquiryResponse = readResponse();
+            nameEnquiryResponse = readResponse();
+            
 
             if(nameEnquiryResponse.ResponseCode == "00") 
             {
+                var nipOutwardNameEnquiry = new NIPOutwardNameEnquiry 
+                {
+                    ResponseCode = nameEnquiryDetailsResult.ResponseCode,
+                    SessionID = nameEnquiryDetailsResult.SessionID,
+                    AccountName = nameEnquiryDetailsResult.AccountName,
+                    BVN = nameEnquiryDetailsResult.BVN,
+                    KYCLevel = nameEnquiryDetailsResult.KYCLevel,
+                    AccountNumber = nameEnquiryDetailsResult.AccountNumber,
+                    DestinationInstitutionCode = nameEnquiryDetailsResult.DestinationInstitutionCode,
+                    DateAdded = DateTime.UtcNow.AddHours(1),
+                };
+
+                try
+                {
+                    await nipOutwardNameEnquiryRepository.Create(nipOutwardNameEnquiry);
+                }
+                catch (System.Exception ex)
+                {
+                    
+                    inboundLog.ExceptionDetails = $"Error thrown for record with sessionID: {request.SessionID} {ex.Message} {ex.StackTrace}";
+                }
+
                 response.Content = nameEnquiryResponse;
                 response.Message = "Success";
                 response.IsSuccess = true;

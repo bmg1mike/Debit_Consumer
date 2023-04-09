@@ -49,10 +49,10 @@ public class NIPOutwardTransaction
     public DateTime? VtellerRequestTime { get; set; }
     public DateTime? VtellerResponseTime { get; set; }
     public string KafkaStatus { get; set; }
-    public int PriorityLevel { get; set; }
+    public int? PriorityLevel { get; set; }
     public string NIBSSResponse { get; set; }
-    public int OutwardTransactionType { get; set; }
-    public int AppsTransactionType { get; set; }
+    public int? OutwardTransactionType { get; set; }
+    public int? AppsTransactionType { get; set; }
     
 }
 

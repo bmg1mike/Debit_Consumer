@@ -1,6 +1,6 @@
 namespace Sterling.NIPOutwardService.Domain.Entities;
 
-public class NPOutwardNameEnquiry
+public class NIPOutwardNameEnquiry
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Key]
@@ -12,5 +12,5 @@ public class NPOutwardNameEnquiry
     public string KYCLevel { get; set; }
     public string AccountNumber { get; set; }
     public string DestinationInstitutionCode { get; set; }
-    public string DateAdded { get; set; }
+    public DateTime DateAdded { get; set; }
 }

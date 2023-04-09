@@ -1,7 +1,3 @@
-using Sterling.NIPOutwardService.Domain.Config.Implementations;
-using Sterling.NIPOutwardService.Service.Helpers.Implementations;
-using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
-
 namespace Sterling.NIPOutwardService.Service;
 
 public static class DependencyInjection
@@ -52,6 +48,8 @@ public static class DependencyInjection
     public static IServiceCollection AddAPIDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<INIPOutwardNameEnquiryService, NIPOutwardNameEnquiryService>();
+        services.AddScoped<INIPOutwardNameEnquiryRepository, NIPOutwardNameEnquiryRepository>();
+        
         services.AddScoped<ISSM, SSM>();
         var apiSettings = configuration.GetSection("APISettings");
         services.Configure<APISettings>(apiSettings);

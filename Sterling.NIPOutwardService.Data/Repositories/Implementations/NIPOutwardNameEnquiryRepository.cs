@@ -1,20 +1,20 @@
 namespace Sterling.NIPOutwardService.Data.Repositories.Implementations;
 
-public class NIPOutwardNameEnquiry:INIPOutwardNameEnquiry
+public class NIPOutwardNameEnquiryRepository:INIPOutwardNameEnquiryRepository
 {
     private SqlDbContext dbContext;
-    public NIPOutwardNameEnquiry(SqlDbContext dbContext)
+    public NIPOutwardNameEnquiryRepository(SqlDbContext dbContext)
     {
         this.dbContext = dbContext;
     }
 
-    public async Task Create(NPOutwardNameEnquiry request)
+    public async Task Create(NIPOutwardNameEnquiry request)
     {
         await dbContext.tbl_NIPOutwardNameEnquiry.AddAsync(request);
         await dbContext.SaveChangesAsync(); 
     }
 
-    public async Task<NPOutwardNameEnquiry?> Get(string DestinationInstitutionCode, string AccountNumber)
+    public async Task<NIPOutwardNameEnquiry?> Get(string DestinationInstitutionCode, string AccountNumber)
     {
         return await dbContext.tbl_NIPOutwardNameEnquiry
         .Where(e => e.DestinationInstitutionCode == DestinationInstitutionCode 

@@ -38,5 +38,7 @@ global using System.Xml;
 global using NIBBSNIPService;
 global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
 global using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
+global using Sterling.NIPOutwardService.Data.Repositories.Implementations;
+global using Sterling.NIPOutwardService.Service.Helpers.Implementations;
 
 

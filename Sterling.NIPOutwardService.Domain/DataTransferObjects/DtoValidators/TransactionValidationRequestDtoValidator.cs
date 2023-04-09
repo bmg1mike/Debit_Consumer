@@ -7,6 +7,6 @@ public class TransactionValidationRequestDtoValidator : AbstractValidator<Transa
         RuleFor(x => x.SessionID)
         .NotNull()
         .NotEmpty()
-        .MaximumLength(100);
+        .Length(30);
     }
 }
