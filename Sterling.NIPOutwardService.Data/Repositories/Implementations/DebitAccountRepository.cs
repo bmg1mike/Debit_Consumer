@@ -27,7 +27,7 @@ public class DebitAccountRepository : IDebitAccountRepository
         });
     }
     
-    public async Task<DebitAccountDetails> GetDebitAccountDetails(string AccountNumber)
+    public async Task<DebitAccountDetails?> GetDebitAccountDetails(string AccountNumber)
     {
         //
         // DebitAccountDetails? accountDetails = new DebitAccountDetails

@@ -127,10 +127,10 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    public async Task<Result<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequestDto request)
+    public async Task<Result<string>> CheckIfTransactionIsSuccessful(TransactionValidationRequestDto request)
     {
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccesful)}";
+        inboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccessful)}";
         inboundLog.RequestDetails = $@"PaymentReference {request.SessionID}";
 
         Result<string> result = new Result<string>();
@@ -147,24 +147,30 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
                 return validationResult;
             }
 
-            var checkIfTransactionIsSuccessfulResult = false;
+            NIPOutwardTransaction transaction = new();
             await retryPolicy.ExecuteAsync(async () =>
             {
-                checkIfTransactionIsSuccessfulResult = await repository.CheckIfTransactionIsSuccessful(request.SessionID);
-
+                transaction = await repository.GetBySessionID(request.SessionID);
             });
 
-            result.IsSuccess = checkIfTransactionIsSuccessfulResult;
-            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            inboundLog.ResponseDetails = $"Transaction successful: {checkIfTransactionIsSuccessfulResult}";
-
-            if (checkIfTransactionIsSuccessfulResult)
+            if(transaction == null)
+            {
+                result.Message = "Transaction not found";
+                result.IsSuccess = false;
+            }
+            else if(transaction.NIBSSResponse == "00")
             {
                 result.Message = "Transaction is successful";
+                result.IsSuccess = true;
             }
-            else{
+            else 
+            {
                 result.Message = "Transaction processing";
-            } 
+                result.IsSuccess = false;
+            }
+
+            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(result);
             
         }
         catch (System.Exception ex)

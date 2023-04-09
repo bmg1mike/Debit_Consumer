@@ -17,18 +17,17 @@ public partial class NIPOutwardTransactionRepository : INIPOutwardTransactionRep
         await dbContext.SaveChangesAsync(); 
     }
 
+    public async Task<NIPOutwardTransaction?> GetBySessionID(string SessionID)
+    {
+        return await dbContext.tbl_NIPOutwardTransactions
+        .Where(e => e.SessionID == SessionID).FirstOrDefaultAsync();
+    }
+
     public async Task<int> Update(NIPOutwardTransaction request)
     {
         
         dbContext.tbl_NIPOutwardTransactions.Update(request);
         return await dbContext.SaveChangesAsync(); 
-    }
-
-    public async Task<bool> CheckIfTransactionIsSuccessful(string FundsTransferSessionId)
-    {
-        return await dbContext.tbl_NIPOutwardTransactions
-        .Where(e => e.SessionID == FundsTransferSessionId && e.NIBSSResponse == "00")
-        .AnyAsync();
     }
 
 }

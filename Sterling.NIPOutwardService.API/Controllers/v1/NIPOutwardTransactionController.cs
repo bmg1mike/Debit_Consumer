@@ -26,6 +26,7 @@ public partial class NIPOutwardTransactionController : BaseController
         if(!response.IsSuccess)
         {
             response.ErrorMessage = response.Message;
+            response.Message = "Transaction failed";
         }
         //response.Content = string.Empty;
 
@@ -42,7 +43,7 @@ public partial class NIPOutwardTransactionController : BaseController
         result.RequestTime = DateTime.UtcNow.AddHours(1);
         var response = new Result<string>();
         
-        response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccesful(request);
+        response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccessful(request);
 
         if(!response.IsSuccess)
         {

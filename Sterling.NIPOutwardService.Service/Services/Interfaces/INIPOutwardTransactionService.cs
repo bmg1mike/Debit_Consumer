@@ -6,5 +6,5 @@ public partial interface INIPOutwardTransactionService
     FundsTransferResult<NIPOutwardTransaction> ValidateCreateNIPOutwardTransactionDto(CreateNIPOutwardTransactionDto request);
     OutboundLog GetOutboundLog();
     Task<int> Update(NIPOutwardTransaction request);
-    Task<Result<string>> CheckIfTransactionIsSuccesful(TransactionValidationRequestDto request);
+    Task<Result<string>> CheckIfTransactionIsSuccessful(TransactionValidationRequestDto request);
 }
