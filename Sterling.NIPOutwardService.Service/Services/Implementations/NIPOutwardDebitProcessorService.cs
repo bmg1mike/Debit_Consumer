@@ -72,7 +72,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         response = await DebitAccount(nipOutwardTransaction);
         response.Content = string.Empty;
 
-        if(!response.IsSuccess)
+        if(!response.IsSuccess && string.IsNullOrWhiteSpace(response.ErrorMessage))
         {
             response.ErrorMessage = response.Message;
         }
@@ -156,11 +156,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
             if (customerClass == 1 && nipOutwardTransaction.Amount > 1000000 && !HasConcessionPerTransPerday)
             {
-                //log.Info("Customer with account " + transaction.nuban + " does not have concession and the txnamt " + transaction.amt + " is higher than the max per tran");
                 nipOutwardTransaction.StatusFlag = 17;
                 await nipOutwardTransactionService.Update(nipOutwardTransaction);
                 result.IsSuccess = false;
                 result.Message = "Transaction not allowed";
+                result.ErrorMessage = @$"Customer of class {customerClass} with account {nipOutwardTransaction.DebitAccountNumber} 
+                does not have concession and the transaction amount {nipOutwardTransaction.Amount} 
+                is higher than the maximum amount per transaction";
                 return result;
             }
 
@@ -302,15 +304,17 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         result.IsSuccess = false;
 
         try
-       { 
+        { 
             if (transaction.DateAdded?.Date != DateTime.UtcNow.AddHours(1).Date)
             {
                 transaction.NameEnquirySessionID = await transactionDetailsRepository.GenerateNameEnquirySessionId(transaction.NameEnquirySessionID);
-                outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-                outboundLog.APICalled = "NameEnquiry";
-                outboundLog.APIMethod = "NameEnquiry";
-                outboundLog.RequestDetails = $@"SessionIdNE:{transaction.NameEnquirySessionID} 
-                BankCode:{transaction.BeneficiaryBankCode} ChannelCode:{transaction.ChannelCode} AccountNumber:{transaction.CreditAccountNumber}";
+                
+                var generateNameEnquirySessionIdLog = transactionDetailsRepository.GetOutboundLog();
+                
+                if(!string.IsNullOrEmpty(generateNameEnquirySessionIdLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(generateNameEnquirySessionIdLog);
+                }
 
                 NameEnquiryRequestDto nameEnquiryRequest = new NameEnquiryRequestDto
                 {
@@ -320,7 +324,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     AccountNumber = transaction.CreditAccountNumber
                 };
 
-                var nameEnquiryResult = await nipOutwardNameEnquiryService.DoNameEnquiry(nameEnquiryRequest);
+                var nameEnquiryResult = await nipOutwardNameEnquiryService.NameEnquiry(nameEnquiryRequest);
+                outboundLogs.AddRange(nipOutwardNameEnquiryService.GetOutboundLogs());
 
                 if(nameEnquiryResult.IsSuccess && nameEnquiryResult?.Content?.ResponseCode == "00")
                 {
@@ -335,57 +340,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     result.IsSuccess = false;
                     result.Message = "Name enquiry failed";
                     return result;
-                }   
-                // await retryPolicy.ExecuteAsync(async () =>
-                // {
-                //     nameEnquiryResponse = await newibs.NameEnquiryAsync(transaction.NameEnquirySessionID, transaction.BeneficiaryBankCode, 
-                //     transaction.ChannelCode.ToString(), transaction.CreditAccountNumber);
-                // });
-                
-                // outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                // outboundLog.ResponseDetails = nameEnquiryResponse?.Body?.NameEnquiryResult;
-                // outboundLogs.Add(outboundLog);
-                // //log.Info("The Response that came back for Name Enquiry is " + namersp + " for RefId " + transaction.Refid);
-                // var namerspArray = nameEnquiryResponse?.Body?.NameEnquiryResult?.Split(':'); 
-                // if (namerspArray?[0] == "00")
-                // {
-                //     transaction.NameEnquirySessionID = transaction.NameEnquirySessionID;
-                //     transaction.CreditAccountName = namerspArray[1];
-                //     transaction.BeneficiaryBVN = namerspArray[2];
-                //     transaction.BeneficiaryKYCLevel = namerspArray[3];
-                //     transaction.NameEnquiryResponse = namerspArray[0];
-                // }
-                // else
-                // {
-                //     result.IsSuccess = false;
-                //     result.Message = "Name enquiry failed";
-                //     return result;
-                // }                
+                }              
                    
             }
 
-            // #region GenerateFTSessionId
-            //     transaction.SessionID = utilityHelper.GenerateFundsTransferSessionId(transaction.ID);
-            //     var recordsUpdated = await nipOutwardTransactionService.Update(transaction);
-
-            //     if (recordsUpdated < 1)
-            //     {
-            //         outboundLog.ExceptionDetails =  "Unable to update FT SessionId for transaction with RefId " + transaction.ID ;
-            //         var updateLog = nipOutwardDebitLookupService.GetOutboundLog();
-            //         outboundLogs.Add(outboundLog);
-            //         outboundLogs.Add(updateLog);
-            //         transaction.StatusFlag = 0;
-            //         await nipOutwardTransactionService.Update(transaction);
-            //         await nipOutwardDebitLookupService.Delete(nipOutwardDebitLookup);
-            //         result.Message = "Internal Server Error";
-            //         result.IsSuccess = false;
-            //     }
-            //     else{
-            //         result.IsSuccess = true;
-            //         result.Content = transaction;
-            //     }
-                
-            //     #endregion 
             result.IsSuccess = true;
             result.Content = transaction;
             return result;
@@ -490,6 +448,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         transaction.StatusFlag = 12;
                         result.IsSuccess = false;
                         result.Message = "Transaction not allowed";
+                        result.ErrorMessage = "Kia kia- 6009 (Transfer Limit - N3000.00)";
                     }
                     //Kia kia plus-6010 (Transfer Limit - N10,000.00)
                     else if (transaction.Amount > 10000 && transaction.LedgerCode == "6010")
@@ -497,6 +456,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         transaction.StatusFlag = 13;
                         result.IsSuccess = false;
                         result.Message = "Transaction not allowed";
+                        result.ErrorMessage = "Kia kia plus-6010 (Transfer Limit - N10,000.00)";
                     }
                     //Sterling Fanatic Kick off – 6011 (Transfer Limit - N3000.00)
                     else if (transaction.Amount > 3000 && transaction.LedgerCode == "6011")
@@ -504,6 +464,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         transaction.StatusFlag = 14;
                         result.IsSuccess = false;
                         result.Message = "Transaction not allowed";
+                        result.ErrorMessage = "Sterling Fanatic Kick off - 6011 (Transfer Limit - N3000.00)";
                     }
                     //Sterling Fanatic Kick off – 6012 (Transfer Limit - N10000.00)
                     else if (transaction.Amount > 10000 && transaction.LedgerCode == "6012")
@@ -511,6 +472,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         transaction.StatusFlag = 14;
                         result.IsSuccess = false;
                         result.Message = "Transaction not allowed";
+                        result.ErrorMessage = "Sterling Fanatic Kick off - 6012 (Transfer Limit - N10000.00)";
                     }
                     else{
                         result.IsSuccess = true;
@@ -628,6 +590,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     model.StatusFlag = 18;
                     await nipOutwardTransactionService.Update(model);
                     result.Message = "Transaction failed";
+                    result.E
                     result.IsSuccess = false;
                     outboundLog.ResponseDetails = "Unable to form the VAT account for ledcode 17201";
                     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
@@ -637,8 +600,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 
                 outboundLog.ResponseDetails = "Vat account formed for Branch " + createVTellerTransactionDto.VAT_bra_code + 
                 " is " + createVTellerTransactionDto.VAT_sub_acct_code;
-                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                outboundLogs.Add(outboundLog);
             }
             else
             {
@@ -667,7 +628,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             }
             
             result.IsSuccess = true;
-            outboundLog.ResponseDetails = $"Is success: {result.IsSuccess.ToString()}";
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLogs.Add(outboundLog);
             return result;
@@ -1247,6 +1207,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.Content.CreateVTellerTransactionDto = vTellerTransactionDto;
             result.IsSuccess = true;
             outboundLog.RequestDetails = "Successfully fetched account details";
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLogs.Add(outboundLog);
             return result;
         }
@@ -1256,6 +1217,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             var rawRequest = "Request object:" + JsonConvert.SerializeObject(vTellerTransactionDto); 
             outboundLog.ExceptionDetails = $@"Error thrown, Raw Request: {rawRequest}
             Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLogs.Add(outboundLog);
             result.Message = "Internal Server Error";
             return result;

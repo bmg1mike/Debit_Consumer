@@ -8,7 +8,7 @@ public class ConcessionTransactionAmountLimitRepository:IConcessionTransactionAm
         this.dbContext = dbContext;
     }
 
-    public async Task<ConcessionTransactionAmountLimit> GetByDebitAccount(string debitAccountNumber)
+    public async Task<ConcessionTransactionAmountLimit?> GetByDebitAccount(string debitAccountNumber)
     {
         return await dbContext.ConcessionTransactionAmountLimit
         .Where(a => a.DebitAccountNumber == debitAccountNumber && a.StatusFlag == 1)

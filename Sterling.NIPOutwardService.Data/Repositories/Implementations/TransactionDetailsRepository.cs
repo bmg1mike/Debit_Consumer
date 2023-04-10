@@ -24,7 +24,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
         }, (exception, timeSpan, retryCount, context) =>
         {
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + "\r\n" + @$"Retrying due to {exception.GetType().Name}... Attempt {retryCount}
-                Exception Details: {exception.Message} {exception.StackTrace} " ;
+                at {DateTime.UtcNow.AddHours(1)} Exception Details: {exception.Message} {exception.StackTrace} " ;
         });
     }
     public async Task<string> GenerateNameEnquirySessionId(string OldNameEnquirySessionId)
@@ -102,8 +102,8 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                         {
                             while (dr.Read())
                             {
-                                nipOutwardCharges.NIPFeeAmount = decimal.Parse(dr["feeAmount"].ToString());
-                                nipOutwardCharges.NIPVatAmount = decimal.Parse(dr["vat"].ToString());
+                                nipOutwardCharges.NIPFeeAmount = Convert.ToDecimal(dr["feeAmount"]?.ToString());
+                                nipOutwardCharges.NIPVatAmount = Convert.ToDecimal(dr["vat"]?.ToString());
                                 nipOutwardCharges.ChargesFound = true;
                                 break;
                             }
@@ -153,8 +153,8 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                             while (dr.Read())
                             {
                                 res.TransactionOk = true;
-                                res.TotalDone = decimal.Parse(dr["totalTOday"].ToString());
-                                res.TotalCount = int.Parse(dr["count"].ToString());
+                                res.TotalDone = Convert.ToDecimal(dr["totalTOday"]?.ToString());
+                                res.TotalCount = Convert.ToInt32(dr["count"]?.ToString());
 
                                 if (res.TotalDone + transactionAmount > Maxperday)
                                 {
@@ -187,7 +187,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
     {
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.isDateHoliday)}";
-        outboundLog.RequestDetails = $@"Amount: {dt.ToString()}";
+        outboundLog.RequestDetails = $@"Date: {dt.ToString()}";
 
         bool found = false;
         string sql = @"select 1 from tbl_public_holiday where holiday =@dt";

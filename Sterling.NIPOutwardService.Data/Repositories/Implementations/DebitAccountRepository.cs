@@ -41,7 +41,8 @@ public class DebitAccountRepository : IDebitAccountRepository
 
         // return accountDetails;
         //
-        DebitAccountDetails? accountDetails = new();
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        DebitAccountDetails? accountDetails = null;
         using (OracleConnection connection = new(appSettings.T24DbConnectionString))
         {
             using (OracleCommand cmd = connection.CreateCommand())
@@ -63,23 +64,23 @@ public class DebitAccountRepository : IDebitAccountRepository
                         {
                             while (dr.Read())
                             {
-                                
-                                accountDetails.T24_LED_CODE = dr["ACCOUNTCATEGORY"].ToString();
-                                accountDetails.UsableBalance = Convert.ToDecimal(dr["USABLE_BALANCE"].ToString());
-                                accountDetails.Email = dr["EMAIL"].ToString();
+                                accountDetails = new DebitAccountDetails();
+                                accountDetails.T24_LED_CODE = dr["ACCOUNTCATEGORY"]?.ToString();
+                                accountDetails.UsableBalance = Convert.ToDecimal(dr["USABLE_BALANCE"]?.ToString());
+                                accountDetails.Email = dr["EMAIL"]?.ToString();
                                 int customerStatusCode;
-                                bool isValidInt = int.TryParse(dr["CUSTOMER_STATUS"].ToString(), out customerStatusCode);
+                                bool isValidInt = int.TryParse(dr["CUSTOMER_STATUS"]?.ToString(), out customerStatusCode);
                                 accountDetails.CustomerStatusCode = isValidInt ? customerStatusCode : 2;
-                                accountDetails.T24_BRA_CODE = dr["BRA_CODE"].ToString();
+                                accountDetails.T24_BRA_CODE = dr["BRA_CODE"]?.ToString();
                             
                             }
-                            // _logger.LogInformation($"Successfully fetched account details for number {AccountNumber} with response {JsonSerializer.Serialize(getAccountFullInfo)}");                        
+                            
                         }
                             else
                         {
                             accountDetails = null;
-                                //getAccountFullInfo.BankAccountFullInfo.NUBAN = "No details for account number";                            
-                                //_logger.LogInformation($"No account details found with account number {AccountNumber} with response {JsonSerializer.Serialize(getAccountFullInfo)}");                        
+                            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                            outboundLog.ResponseDetails = "no data returned for record";
                         }
                     });
                     

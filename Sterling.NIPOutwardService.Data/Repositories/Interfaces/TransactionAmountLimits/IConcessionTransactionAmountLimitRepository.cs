@@ -2,5 +2,5 @@ namespace Sterling.NIPOutwardService.Data.Repositories.Interfaces.TransactionAmo
 
 public interface IConcessionTransactionAmountLimitRepository 
 {
-    Task<ConcessionTransactionAmountLimit> GetByDebitAccount(string debitAccountNumber);
+    Task<ConcessionTransactionAmountLimit?> GetByDebitAccount(string debitAccountNumber);
 }

@@ -42,6 +42,7 @@ public class TransactionAmountLimitService : ITransactionAmountLimitService
         });
 
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.ResponseDetails = JsonConvert.SerializeObject(concessionTransactionAmountLimit);
 
         return concessionTransactionAmountLimit;
     }

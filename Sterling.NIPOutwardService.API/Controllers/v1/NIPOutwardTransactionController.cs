@@ -23,16 +23,12 @@ public partial class NIPOutwardTransactionController : BaseController
     {        
         FundsTransferResult<string> response =  await nipOutwardDebitService.ProcessTransaction(request);
 
-        if(!response.IsSuccess)
-        {
-            response.ErrorMessage = response.Message;
-            response.Message = "Transaction failed";
-        }
-        //response.Content = string.Empty;
-
-        //result = response;
-        //result.PaymentReference = request.PaymentReference;
-        //result.ResponseTime = DateTime.UtcNow.AddHours(1);
+        // if(!response.IsSuccess)
+        // {
+        //     response.ErrorMessage = response.Message;
+        //     response.Message = "Transaction failed";
+        // }
+        
         return Ok(response);
     }
     [HttpPost]

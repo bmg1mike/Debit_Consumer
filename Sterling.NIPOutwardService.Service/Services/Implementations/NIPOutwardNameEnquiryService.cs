@@ -14,7 +14,8 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
     private InboundLog inboundLog;
     private readonly IInboundLogService inboundLogService;
     private readonly INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository;
-
+    private readonly AsyncRetryPolicy retryPolicy;
+    private List<OutboundLog> outboundLogs;
 
     public NIPOutwardNameEnquiryService(ISSM ssm, IOptions<AppSettings> appSettings, IOptions<APISettings> apiSettings,
         IInboundLogService inboundLogService, INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository)
@@ -26,16 +27,29 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             InboundLogId = ObjectId.GenerateNewId().ToString(), 
             OutboundLogs = new List<OutboundLog>(),
             };
+        this.outboundLogs = new List<OutboundLog> ();
         this.inboundLogService = inboundLogService;
         this.nipOutwardNameEnquiryRepository = nipOutwardNameEnquiryRepository;
+        this.retryPolicy = Policy.Handle<Exception>()
+        .WaitAndRetryAsync(new[]
+        {
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(4)
+        }, (exception, timeSpan, retryCount, context) =>
+        {
+            var outboundLog = new OutboundLog  { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + "\r\n" + @$"Retrying due to {exception.GetType().Name}... Attempt {retryCount}
+                at {DateTime.UtcNow.AddHours(1)} Exception Details: {exception.Message} {exception.StackTrace} " ;
+            outboundLogs.Add(outboundLog);
+        });
     }
 
     public async Task<Result<NameEnquiryResponseDto>> DoNameEnquiry(NameEnquiryRequestDto request)
     {
         var response = new Result<NameEnquiryResponseDto>();
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.APICalled = "NIPOutwardService";
-        inboundLog.APIMethod = "NameEnquiry";
+        inboundLog.APICalled = apiSettings.NIPNIBSSService;
         inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
 
         var validationResult = ValidateNameEnquiryResponseDto(request);
@@ -48,8 +62,28 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             return validationResult;
         }
 
-        var nameEnquiryDetailsResult = await nipOutwardNameEnquiryRepository
-        .Get(request.DestinationInstitutionCode, request.AccountNumber);
+        var nameEnquiryResult = await NameEnquiry(request);
+        response = nameEnquiryResult;
+        inboundLog.OutboundLogs = outboundLogs;
+        inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
+        await inboundLogService.CreateInboundLog(inboundLog);
+        return response;
+    }
+
+    public async Task<Result<NameEnquiryResponseDto>> NameEnquiry(NameEnquiryRequestDto request)
+    {
+        var response = new Result<NameEnquiryResponseDto>();
+
+        var nameEnquiryDetailsResult = new NIPOutwardNameEnquiry();
+        await retryPolicy.ExecuteAsync(async () =>
+        {
+            
+            nameEnquiryDetailsResult = await nipOutwardNameEnquiryRepository
+            .Get(request.DestinationInstitutionCode, request.AccountNumber);
+        });
+
+        
 
         var nameEnquiryResponse = new NameEnquiryResponseDto();
         if (nameEnquiryDetailsResult != null && nameEnquiryDetailsResult.ResponseCode == "00")
@@ -73,20 +107,18 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             return response;
         }
         
+        
         createRequest(request);
 
         if (!sendRequest()) //unsuccessful request
         {
             response.Message = "Name enquiry failed";
             response.IsSuccess = false;
-            //AcctNameval = "";
-            // msg = responsecodeVal + ":" + AcctNameval;
-            //new ErrorLog(msg);
+           
         }
         else
         {
             nameEnquiryResponse = readResponse();
-            
 
             if(nameEnquiryResponse.ResponseCode == "00") 
             {
@@ -108,8 +140,10 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
                 }
                 catch (System.Exception ex)
                 {
-                    
-                    inboundLog.ExceptionDetails = $"Error thrown for record with sessionID: {request.SessionID} {ex.Message} {ex.StackTrace}";
+                    var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+                    outboundLog.ExceptionDetails = @$"Error thrown while attempting to add name enquiry record to table:
+                    {ex.Message} {ex.StackTrace}";
+                    outboundLogs.Add(outboundLog);
                 }
 
                 response.Content = nameEnquiryResponse;
@@ -122,24 +156,18 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
                 response.IsSuccess = false;
             }
 
-            // responsecodeVal = sne.ResponseCode;
-            // AcctNameval = sne.AccountName;
-            // msg = responsecodeVal + ":" + AcctNameval;
-            // new ErrorLog(msg);
         }
-        inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
-        await inboundLogService.CreateInboundLog(inboundLog);
+        
         return response;
     }
 
-     public Result<NameEnquiryResponseDto> ValidateNameEnquiryResponseDto(NameEnquiryRequestDto request)
+    public Result<NameEnquiryResponseDto> ValidateNameEnquiryResponseDto(NameEnquiryRequestDto request)
     {
         Result<NameEnquiryResponseDto> result = new Result<NameEnquiryResponseDto>();
         result.IsSuccess = false;
 
         NameEnquiryRequestDtoValidator validator = new NameEnquiryRequestDtoValidator();
-        ValidationResult results = validator.Validate(request);
+            ValidationResult results = validator.Validate(request);
 
         if (!results.IsValid)
         {
@@ -151,7 +179,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
 
             result.IsSuccess = false;
             result.ErrorMessage = sb.ToString();
-            result.Message = sb.ToString();
+            result.Message = "Invalid transaction";
 
            
         }
@@ -175,8 +203,14 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
     public bool sendRequest()
     {
         bool ok = false;
+        var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        var request = rqt.ToString();
         try
         {
+            outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+            outboundLog.APICalled = apiSettings.NIPNIBSSService;
+            outboundLog.RequestDetails = request;
+
             BasicHttpBinding binding = new()
             {
                 CloseTimeout = TimeSpan.FromMinutes(apiSettings.NIBSSNIPServiceCloseTimeoutInMinutes),
@@ -189,23 +223,31 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
 
             NIPInterfaceClient nipClient = new NIPInterfaceClient(binding, new EndpointAddress(apiSettings.NIPNIBSSService));
            
-            string str = ssm.Encrypt(rqt.ToString());
+            string str = ssm.Encrypt(request);
             xml = nipClient.nameenquirysingleitem(str);
             
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             ok = true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            //Mylogger1.Error(ex);
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
             ok = false;
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             //ResponseCode = "96";
         }
+        outboundLog.ResponseDetails = $"Name enquiry call successful: {ok}";
+        outboundLogs.Add(outboundLog);
         return ok;
     }
 
     public NameEnquiryResponseDto readResponse()
     {
         NameEnquiryResponseDto response = new NameEnquiryResponseDto();
+        var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        outboundLog.APIMethod = "ReadNameEnquiryResponse";
+
         try
         {
             //new ErrorLog("Read Inward NE " + xml);
@@ -233,12 +275,23 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         
             //return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            //new ErrorLog(ex);
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {xml} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
             response.ResponseCode = "96";
             //return false;
         }
+        outboundLog.ResponseDetails = xml;
+        outboundLogs.Add(outboundLog);
+
         return response;
+    }
+
+    public List<OutboundLog> GetOutboundLogs()
+    {
+        var recordsToBeMoved = this.outboundLogs;
+        this.outboundLogs = new List<OutboundLog>();
+        return recordsToBeMoved;
     }
 }

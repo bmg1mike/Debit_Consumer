@@ -28,31 +28,14 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
     }
     public async Task<FundsTransferResult<NIPOutwardDebitLookup>> FindOrCreate(long ID)
     {
-        // var checkIfRecordExistsResult = await nipOutwardDebitLookupRepository.FindByNIPOutwardTransactionID(ID);
-
-        // if (checkIfRecordExistsResult)
-        // {
-
-        // }
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.FindOrCreate)}";
-        outboundLog.RequestDetails = $"{ID}";
+        outboundLog.RequestDetails = $"NIP outward transaction ID: {ID}";
 
         FundsTransferResult<NIPOutwardDebitLookup> result = new FundsTransferResult<NIPOutwardDebitLookup>();
         result.IsSuccess = false;
         try
         {
-            // var checkIfRecordExistsResult = await nipOutwardLookupRepository.FindByNIPOutwardTransactionID(ID);
-
-            // if (checkIfRecordExistsResult)
-            // {
-            //     result.IsSuccess = false;
-            //     result.Message = "Transaction failed. Duplicate Record.";
-            //     outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + $"Duplicate record in look up table. ID: {ID}";
-            //     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            //     return result;
-            // }
-
             var nipOutwardDebitLookup = new NIPOutwardDebitLookup {
                 NIPOutwardTransactionID = ID,
                 StatusFlag  = 3,
@@ -89,8 +72,9 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
             "\r\n" + $@"Raw Request {ID} Exception Details: {ex.Message} {ex.StackTrace}";
         }
-        outboundLog.ResponseDetails = result.Message;
+        outboundLog.ResponseDetails = $"Successfully added record to look up table: {result.IsSuccess}";
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        
         return result;
     }
 

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public class NIPOutwardDebitService : INIPOutwardDebitService
@@ -9,9 +11,11 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     private readonly IInboundLogService inboundLogService;
     private readonly IMapper mapper;
     private readonly IUtilityHelper utilityHelper;
+    private readonly IHttpContextAccessor httpContextAccessor;
     public NIPOutwardDebitService(INIPOutwardDebitProcessorService nipOutwardDebitProcessorService, 
     INIPOutwardDebitProducerService nipOutwardDebitProducerService, IInboundLogService inboundLogService,
-    INIPOutwardTransactionService nipOutwardTransactionService, IMapper mapper, IUtilityHelper utilityHelper)
+    INIPOutwardTransactionService nipOutwardTransactionService, IMapper mapper, IUtilityHelper utilityHelper,
+    IHttpContextAccessor httpContextAccessor)
     {
         this.nipOutwardDebitProcessorService = nipOutwardDebitProcessorService;
         this.nipOutwardDebitProducerService = nipOutwardDebitProducerService;
@@ -23,6 +27,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         this.nipOutwardTransactionService = nipOutwardTransactionService;
         this.mapper = mapper;
         this.utilityHelper = utilityHelper;
+        this.httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<FundsTransferResult<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
@@ -34,6 +39,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         inboundLog.APICalled = "NIPOutwardService";
         inboundLog.APIMethod = "FundsTransfer";
+        inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
 
         inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
         
@@ -81,6 +87,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         response.SessionID = nipOutwardTransaction.SessionID;
         response.ResponseTime = DateTime.UtcNow.AddHours(1);
         response.Content = string.Empty;
+        response.PaymentReference = request.PaymentReference;
         inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
         inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
         
@@ -99,7 +106,6 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             inboundLog.OutboundLogs.Add(nipOutwardTransactionService.GetOutboundLog());
 
             return insertRecordResult;
-
         }
         catch (System.Exception ex)
         {
@@ -120,24 +126,36 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         result.IsSuccess = false;
 
         try
-       { 
+        { 
             #region GenerateFTSessionId
                 transaction.SessionID = utilityHelper.GenerateFundsTransferSessionId(transaction.ID);
                 var recordsUpdated = await nipOutwardTransactionService.Update(transaction);
 
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    inboundLog.OutboundLogs.Add(updateLog);
+                }
+
                 if (recordsUpdated < 1)
                 {
-                    outboundLog.ExceptionDetails =  "Unable to update FT SessionId for transaction with RefId " + transaction.ID ;
-                    inboundLog.OutboundLogs.Add(outboundLog);
+                    outboundLog.ExceptionDetails =  "Unable to update Session ID for transaction";
+                    
                     transaction.StatusFlag = 0;
                     await nipOutwardTransactionService.Update(transaction);
                     result.Message = "Internal Server Error";
+                    result.ErrorMessage = "Unable to update Session ID for transaction";
                     result.IsSuccess = false;
                 }
                 else{
+                    outboundLog.ResponseDetails = "Session ID successfully updated for transaction";
                     result.IsSuccess = true;
                     result.Content = transaction;
                 }
+
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                inboundLog.OutboundLogs.Add(outboundLog);
                 
                 #endregion 
 
@@ -148,6 +166,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         {
             result.IsSuccess = false;
             result.Message = "Internal Server Error";
+            result.ErrorMessage = "Unable to update Session ID for transaction";
             var request = JsonConvert.SerializeObject(transaction);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";

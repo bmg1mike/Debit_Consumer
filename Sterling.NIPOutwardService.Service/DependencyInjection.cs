@@ -49,6 +49,7 @@ public static class DependencyInjection
     {
         services.AddScoped<INIPOutwardNameEnquiryService, NIPOutwardNameEnquiryService>();
         services.AddScoped<INIPOutwardNameEnquiryRepository, NIPOutwardNameEnquiryRepository>();
+        services.AddHttpContextAccessor();
         
         services.AddScoped<ISSM, SSM>();
         var apiSettings = configuration.GetSection("APISettings");

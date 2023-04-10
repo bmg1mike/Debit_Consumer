@@ -37,7 +37,14 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
 
             request.KafkaStatus = "K1";
             await nipOutwardTransactionService.Update(request);
-            outboundLogs.Add(nipOutwardTransactionService.GetOutboundLog());
+
+            var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+            if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+            {
+                outboundLogs.Add(updateLog);
+            }
+
             
         }
         catch (System.Exception ex)
@@ -47,7 +54,7 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
         }
-        //outboundLog.ResponseDetails = JsonConvert.SerializeObject(result);
+        outboundLog.ResponseDetails = $"Successfully published transaction: {result.IsSuccess}";
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
         outboundLogs.Add(outboundLog);
         return result;

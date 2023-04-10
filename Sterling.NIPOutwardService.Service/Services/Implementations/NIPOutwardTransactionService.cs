@@ -30,7 +30,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         }, (exception, timeSpan, retryCount, context) =>
         {
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + "\r\n" + @$"Retrying due to {exception.GetType().Name}... Attempt {retryCount}
-                Exception Details: {exception.Message} {exception.StackTrace} " ;
+             at {DateTime.UtcNow.AddHours(1).ToString()}   Exception Details: {exception.Message} {exception.StackTrace} " ;
         });
     }
 
@@ -86,7 +86,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    public async Task<int> Update(NIPOutwardTransaction request)
+    public async Task<int>  Update(NIPOutwardTransaction request)
     {
         var recordsUpdated = 0;
         await retryPolicy.ExecuteAsync(async () =>
@@ -116,9 +116,8 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
 
             result.IsSuccess = false;
             result.ErrorMessage = sb.ToString();
-            result.Message = sb.ToString();
+            result.Message = "Invalid transaction";
 
-           
         }
         else{
              result.IsSuccess = true;
