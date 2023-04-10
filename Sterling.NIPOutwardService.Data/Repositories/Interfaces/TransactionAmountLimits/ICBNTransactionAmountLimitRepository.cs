@@ -2,5 +2,5 @@ namespace Sterling.NIPOutwardService.Data.Repositories.Interfaces.TransactionAmo
 
 public interface ICBNTransactionAmountLimitRepository
 {
-    Task<CBNTransactionAmountLimit> GetByCustomerClass(int customerClass);
+    Task<CBNTransactionAmountLimit?> GetByCustomerClass(int customerClass);
 }

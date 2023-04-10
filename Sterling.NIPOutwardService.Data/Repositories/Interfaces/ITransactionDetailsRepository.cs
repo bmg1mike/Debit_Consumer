@@ -4,7 +4,7 @@ public interface ITransactionDetailsRepository
 {
     Task<string> GenerateNameEnquirySessionId(string OldSessionId);
     Task<NIPOutwardCharges> GetNIPFee(decimal amt);
-    Task<TotalTransactionDonePerDay> GetTotalTransDonePerday(decimal Maxperday, decimal amt, string nuban);
+    Task<TotalTransactionDonePerDay> GetTotalTransDonePerday(decimal amt, string nuban);
     Task<bool> isDateHoliday(DateTime dt);
     Task<bool> isBankCodeFound(string bankCode);
     Task<bool> isLedgerNotAllowed(string ledgerCode);

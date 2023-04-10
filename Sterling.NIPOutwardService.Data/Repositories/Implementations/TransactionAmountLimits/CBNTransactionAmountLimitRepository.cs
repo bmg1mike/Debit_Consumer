@@ -8,7 +8,7 @@ public class CBNTransactionAmountLimitRepository:ICBNTransactionAmountLimitRepos
         this.dbContext = dbContext;
     }
 
-    public async Task<CBNTransactionAmountLimit> GetByCustomerClass(int customerClass)
+    public async Task<CBNTransactionAmountLimit?> GetByCustomerClass(int customerClass)
     {
         return await dbContext.CBNTransactionAmountLimit.Where(a => a.CustomerClass == customerClass && a.StatusFlag == 1).FirstOrDefaultAsync();
     }

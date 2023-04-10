@@ -125,13 +125,13 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
         return nipOutwardCharges;
     }
 
-    public async Task<TotalTransactionDonePerDay> GetTotalTransDonePerday(decimal Maxperday, decimal transactionAmount, string debitAccountNumber)
+    public async Task<TotalTransactionDonePerDay> GetTotalTransDonePerday(decimal transactionAmount, string debitAccountNumber)
     {
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetTotalTransDonePerday)}";
-        outboundLog.RequestDetails = $@"Raw Request: Maxperday: {Maxperday}, transactionAmount: {transactionAmount}, debitAccountNumber: {debitAccountNumber}";
+        outboundLog.RequestDetails = $@"Raw Request: transactionAmount: {transactionAmount}, debitAccountNumber: {debitAccountNumber}";
 
-        var res = new TotalTransactionDonePerDay { TransactionOk = false };
+        var res = new TotalTransactionDonePerDay();
         string sql = "select ISNULL(SUM(amount),0) as totalTOday,ISNULL(count(amount),0) as count from tbl_NIPOutwardTransactions with (nolock) " +
             " where DebitAccountNumber =@DebitAccountNumber" +
             " and CONVERT(Varchar(20), dateadded,102) = CONVERT(Varchar(20), GETDATE(),102) and DebitResponse=1 and FundsTransferResponse='00'";
@@ -152,18 +152,9 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                         {
                             while (dr.Read())
                             {
-                                res.TransactionOk = true;
+                                
                                 res.TotalDone = Convert.ToDecimal(dr["totalTOday"]?.ToString());
                                 res.TotalCount = Convert.ToInt32(dr["count"]?.ToString());
-
-                                if (res.TotalDone + transactionAmount > Maxperday)
-                                {
-                                    res.TransactionOk = true;
-                                }
-                                else
-                                {
-                                    res.TransactionOk = false;
-                                }
                             }
 
                         }
@@ -174,7 +165,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
             catch (Exception ex)
             {
                 outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-        "\r\n" + $@"Raw Request: Maxperday: {Maxperday}, transactionAmount: {transactionAmount}, debitAccountNumber: {debitAccountNumber} Exception Details: {ex.Message} {ex.StackTrace}";
+        "\r\n" + $@"Raw Request: transactionAmount: {transactionAmount}, debitAccountNumber: {debitAccountNumber} Exception Details: {ex.Message} {ex.StackTrace}";
             }
             connection.Close();
         }

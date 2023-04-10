@@ -255,8 +255,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 var concessionChecksResult = await DoChecksBasedOnConcession(nipOutwardTransaction,  
                 concessionTransactionAmountLimit);
 
-                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-
                 if(!concessionChecksResult.IsSuccess)
                 {
                     return concessionChecksResult;
@@ -353,6 +351,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.IsSuccess = false;
             result.Message = "Internal Server Error";
             var request = JsonConvert.SerializeObject(transaction);
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLogs.Add(outboundLog);
@@ -590,8 +589,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     model.StatusFlag = 18;
                     await nipOutwardTransactionService.Update(model);
                     result.Message = "Transaction failed";
+                    result.ErrorMessage = "Unable to form the VAT account for ledger code 17201";
                     result.IsSuccess = false;
-                    outboundLog.ResponseDetails = "Unable to form the VAT account for ledcode 17201";
+                    outboundLog.ResponseDetails = "Unable to form the VAT account for ledger code 17201";
                     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                     outboundLogs.Add(outboundLog);
                     return result;
@@ -602,11 +602,11 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             }
             else
             {
-                //msg = "Error: Unable to compute VAT and Fee for account " + acct;
-                //log.Info(msg);
+                
                 model.StatusFlag = 18;
                 await nipOutwardTransactionService.Update(model);
                 result.Message = "Transaction failed";
+                result.ErrorMessage = "Error: Unable to compute VAT and Fee for account";
                 result.IsSuccess = false;
 
                 outboundLog.ResponseDetails = "Error: Unable to compute VAT and Fee for account";
@@ -633,15 +633,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         }
         catch (Exception ex)
         {
-            //new ErrorLog("Error occured " + ex);
-            //log.Error("Error occured ", ex);
-            //msg = "Error: Unable to compute VAT and Fee for account " + acct;
-            //log.Info(msg);
             model.StatusFlag = 19;
             await nipOutwardTransactionService.Update(model);
             
             result.IsSuccess = false;
             result.Message = "Internal Server Error";
+            result.ErrorMessage = "Error: Unable to compute VAT and Fee for account";
             var request = JsonConvert.SerializeObject(createVTellerTransactionDto);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
@@ -662,24 +659,23 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.DoChecksBasedOnConcession)}";
         try
         {        
-            //log.Info("MaxperTrans returned " + maxPerTrans.ToString() + " maxPerday " + maxPerday.ToString() + " for customer " + transaction.nuban);
-            TotalTransactionDonePerDay totalTransactionsPerDay = await transactionDetailsRepository.GetTotalTransDonePerday(concessionTransactionAmountLimit.MaximumAmountPerDay,
-                transaction.Amount, transaction.DebitAccountNumber); 
+            TotalTransactionDonePerDay totalTransactionsPerDay = await transactionDetailsRepository.GetTotalTransDonePerday(transaction.Amount, transaction.DebitAccountNumber); 
 
             outboundLogs.Add(transactionDetailsRepository.GetOutboundLog());
 
-            bool totalfound = totalTransactionsPerDay.TransactionOk;// Tdp1.GetTotalTransDonePerday(transaction.bra_code, transaction.cus_num, transaction.cur_code, transaction.led_code, transaction.sub_acct_code, maxPerday, transaction.amt, transaction.nuban);
-
             if (transaction.Amount > concessionTransactionAmountLimit.MaximumAmountPerTransaction)
             {
-                outboundLog.ResponseDetails = "Customer with account " + transaction.DebitAccountNumber + " has concession and the transaction amount " + transaction.Amount + " is higher than the max per tran" + concessionTransactionAmountLimit.MaximumAmountPerTransaction ;
+                outboundLog.ResponseDetails = "Customer with account " + transaction.DebitAccountNumber + 
+                " has concession and the transaction amount " + transaction.Amount + 
+                " is higher than the maximum per transaction" + concessionTransactionAmountLimit.MaximumAmountPerTransaction ;
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLogs.Add(outboundLog);
                 transaction.FundsTransferResponse = "09x";    
                 transaction.StatusFlag = 23;    
                 await nipOutwardTransactionService.Update(transaction);
                 result.Content = transaction;
-                result.Message = "Transaction not allowed";
+                result.Message = "Transaction not allowed: Transaction amount is greater than the maximum amount per transaction";
+                result.ErrorMessage = outboundLog.ResponseDetails;
                 result.IsSuccess = false;
                 return result;
             }
@@ -688,39 +684,39 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             {
                 decimal my1sum = 0;
                 my1sum = transaction.Amount + totalTransactionsPerDay.TotalDone;
-                outboundLog.ResponseDetails = "Customer with account " + transaction.DebitAccountNumber + " has concession and the transaction amount plus the totalNipdone " + my1sum.ToString() + "is higher than the max per tran" + concessionTransactionAmountLimit.MaximumAmountPerTransaction.ToString() ;
+                outboundLog.ResponseDetails = "Customer with account " + transaction.DebitAccountNumber + 
+                " has concession and the transaction amount plus the total NIP transactions done " + my1sum.ToString() + 
+                " is higher than the maximum per transaction " + concessionTransactionAmountLimit.MaximumAmountPerTransaction.ToString() ;
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLogs.Add(outboundLog);
 
                 transaction.FundsTransferResponse = "09x";
                 transaction.StatusFlag = 24;
                 await nipOutwardTransactionService.Update(transaction);
+
                 result.Content = transaction;
-                result.Message = "Transaction not allowed";
+                result.Message = "Transaction not allowed. Limit exceeded for today";
+                result.ErrorMessage = outboundLog.ResponseDetails;
                 result.IsSuccess = false;
                 return result;
             }
 
-            if (transaction.LedgerCode == "6009")
+            if (transaction.LedgerCode == "6009" && transaction.Amount > 20000)
             {
-                if (transaction.Amount > 20000)
-                {
-                    outboundLog.ResponseDetails = "Transaction with account " + transaction.DebitAccountNumber + 
-                    $" and ledger code 6009 has transaction amount {transaction.Amount} greater than 20000 ";
-                    outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                    outboundLogs.Add(outboundLog);
+                outboundLog.ResponseDetails = "Transaction with account " + transaction.DebitAccountNumber + 
+                $" and ledger code 6009 has transaction amount {transaction.Amount} greater than 20000 ";
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                outboundLogs.Add(outboundLog);
 
-                    transaction.FundsTransferResponse = "13";
-                    transaction.StatusFlag = 25;
-                    await nipOutwardTransactionService.Update(transaction);
-                    result.Content = transaction;
-                    result.Message = "Transaction not allowed";
-                    result.IsSuccess = false;
-                    return result;
-                }
+                transaction.FundsTransferResponse = "13";
+                transaction.StatusFlag = 25;
+                await nipOutwardTransactionService.Update(transaction);
+                result.Content = transaction;
+                result.Message = "Transaction not allowed: Transaction amount is greater than the maximum amount per transaction";
+                result.ErrorMessage = outboundLog.ResponseDetails;
+                result.IsSuccess = false;
+                return result;
             }
-
-            //transaction.FundsTransferResponse = "00";
            
             result.Content = transaction;
             result.IsSuccess = true;
@@ -750,12 +746,14 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
         OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
         result.IsSuccess = false;
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.DoChecksBasedOnCBNorEFTLimit)}";
 
         try
         {
             decimal maxPerTrans = 0;
             decimal maxPerday = 0;
-            var totalTransactionsPerDay = await transactionDetailsRepository.GetTotalTransDonePerday(maxPerday, transaction.Amount, transaction.DebitAccountNumber);
+            var totalTransactionsPerDay = await transactionDetailsRepository.GetTotalTransDonePerday(transaction.Amount, transaction.DebitAccountNumber);
             outboundLogs.Add(transactionDetailsRepository.GetOutboundLog());
 
             if (holidayFound)
@@ -764,37 +762,51 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 {
                     if (totalTransactionsPerDay.TotalCount >= 3)
                     {
+                        outboundLog.ResponseDetails = @$"Customer with customer status code {customerStatusCode}
+                        has exceeded the maximum count of transactions which is 3";
+                        outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                        outboundLogs.Add(outboundLog);
+
                         transaction.FundsTransferResponse = "65";
                         transaction.StatusFlag = 28;
                         await nipOutwardTransactionService.Update(transaction);
                         result.Content = transaction;
-                        result.Message = "Transaction not allowed";
+                        result.Message = "Transaction not allowed. Limit exceeded";
+                        result.ErrorMessage = outboundLog.ResponseDetails;
                         result.IsSuccess = false;
                         return result;
                     }
 
                     if (totalTransactionsPerDay.TotalDone + transaction.Amount > 200000)
-                    {                        
+                    {  
+                        outboundLog.ResponseDetails = @$"Customer with customer status code {customerStatusCode} and account " + transaction.DebitAccountNumber + 
+                        " and the transaction amount plus the total NIP transactions done " + totalTransactionsPerDay.TotalDone + transaction.Amount + 
+                        " is higher than the maximum per transaction " + 200000 ;
+                        outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                        outboundLogs.Add(outboundLog);  
+
                         transaction.FundsTransferResponse = "65";
                         transaction.StatusFlag = 24;
                         await nipOutwardTransactionService.Update(transaction);
+
                         result.Content = transaction;
-                        result.Message = "Transaction not allowed";
+                        result.Message = "Transaction not allowed. Limit exceeded for today.";
+                        result.ErrorMessage = outboundLog.ResponseDetails;
                         result.IsSuccess = false;
                         return result;
                     }
                 }
             }
 
-            CBNTransactionAmountLimit dsl = await transactionAmountLimitService.GetCBNLimitByCustomerClass(cus_class);
+            CBNTransactionAmountLimit cbnTransactionAmountLimit = await transactionAmountLimitService.GetCBNLimitByCustomerClass(cus_class);
             outboundLogs.Add(transactionAmountLimitService.GetOutboundLog());
 
             if (cus_class == 1)
             {
-                if (dsl != null)
+                if (cbnTransactionAmountLimit != null)
                 {
-                    maxPerTrans = dsl.MaximumAmountPerTransaction;
-                    maxPerday = dsl.MaximumAmountPerDay;
+                    maxPerTrans = cbnTransactionAmountLimit.MaximumAmountPerTransaction;
+                    maxPerday = cbnTransactionAmountLimit.MaximumAmountPerDay;
                 }
 
                 //check if the ledger is for savings
@@ -813,10 +825,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             }
             else if (cus_class == 2 || cus_class == 3)
             {
-                if (dsl != null)
+                if (cbnTransactionAmountLimit != null)
                 {
-                    maxPerTrans = dsl.MaximumAmountPerTransaction;
-                    maxPerday = dsl.MaximumAmountPerDay;
+                    maxPerTrans = cbnTransactionAmountLimit.MaximumAmountPerTransaction;
+                    maxPerday = cbnTransactionAmountLimit.MaximumAmountPerDay;
                 }
             
             }    
@@ -831,7 +843,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.StatusFlag = 29;
                 await nipOutwardTransactionService.Update(transaction);
                 result.Content = transaction;
-                result.Message = "Transaction not allowed";
+                result.Message = "Transaction failed";
+                result.ErrorMessage = outboundLog.ResponseDetails;
                 result.IsSuccess = false;
                 return result;
             }
@@ -841,7 +854,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             {
                 if (transaction.Amount + totalTransactionsPerDay.TotalDone > maxPerday)
                 {
-                    outboundLog.ResponseDetails = "transaction amount plus total done for the day greater than CBN maximum amount per day";
+                    outboundLog.ResponseDetails = @$"transaction amount plus total done for the day 
+                    {transaction.Amount + totalTransactionsPerDay.TotalDone} greater than CBN maximum amount per day
+                    {maxPerday}";
                     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                     outboundLogs.Add(outboundLog);
 
@@ -849,14 +864,16 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     transaction.StatusFlag = 24;
                     await nipOutwardTransactionService.Update(transaction);
                     result.Content = transaction;
-                    result.Message = "Transaction not allowed";
+                    result.Message = "Transaction not allowed. Limit exceeded for today.";
+                    result.ErrorMessage = outboundLog.ResponseDetails;
                     result.IsSuccess = false;
                     return result;
                 }
             }
             else
             {
-                outboundLog.ResponseDetails = "transaction amount greater than CBN maximum amount per transaction";
+                outboundLog.ResponseDetails = @$"transaction amount {transaction.Amount} greater than 
+                CBN maximum amount per transaction {maxPerTrans}";
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLogs.Add(outboundLog);
 
@@ -864,7 +881,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.StatusFlag = 23;
                 await nipOutwardTransactionService.Update(transaction);
                 result.Content = transaction;
-                result.Message = "Transaction not allowed";
+                result.Message = "Transaction not allowed: Transaction amount is greater than the maximum amount per transaction";
+                result.ErrorMessage = outboundLog.ResponseDetails;
                 result.IsSuccess = false;
                 return result;
             }
@@ -884,9 +902,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             $@"  holidayFound: {holidayFound}, customerStatusCode: {customerStatusCode}, cus_class: {cus_class}";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLogs.Add(outboundLog);
-            return result;
-            
+            return result;  
         }
        
             
