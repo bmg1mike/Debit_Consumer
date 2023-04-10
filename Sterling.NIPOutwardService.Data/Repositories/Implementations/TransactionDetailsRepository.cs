@@ -342,7 +342,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetFreeFeeAccount)}";
         outboundLog.RequestDetails = $"{accountNo}";
 
-        FreeFeeAccount? res = new FreeFeeAccount();
+        FreeFeeAccount? res = null;
         string sql = "select top 1 nuban,feeAccount,VatAccount,AddedBy from tbl_freebanking where nuban = @accountNo";
         using (SqlConnection connection = new SqlConnection(appSettings.SqlServerDbConnectionString))
         {
@@ -361,9 +361,9 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
                         {
                             while (dr.Read())
                             {
+                                res = new FreeFeeAccount();
                                 res.feeAccount = dr["feeAccount"].ToString();
                                 res.VatAccount = dr["VatAccount"].ToString();
-                                
                             }
                             
                         }
@@ -379,6 +379,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
             {
                 outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
                 "\r\n" + $@"Account number {accountNo} Exception Details: {ex.Message} {ex.StackTrace}";
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 return null;
 
             }

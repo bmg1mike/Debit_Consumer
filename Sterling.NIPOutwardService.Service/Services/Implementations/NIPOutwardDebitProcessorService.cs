@@ -1001,6 +1001,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
                 result.IsSuccess = false;
                 result.Message = "Transaction Failed";
+                result.ErrorMessage = "Internal server error";
                 
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLog.ResponseDetails = $"response:{response.Respreturnedcode1} error text: {response.error_text}";
@@ -1014,74 +1015,94 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 //log.Info("The Response from Banks is " + response.Respreturnedcode1 + "  and hence, vTeller logs it as 2. For SessionID " + transaction.SessionID + " T24 msg ==> " + response.error_text);
                 //msg = "Error: Unable to debit customer's account for Principal";
                 string Respval = "";
+                result.Message = "Transaction Failed ";
 
                 if (response.error_text.Contains("Post No Debits"))
                 {
                     Respval = "x1000"; //Post No Debits (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "Post No Debits";
                 }
                 else if (response.error_text.Contains("Incomplete Documentation"))
                 {
                     Respval = "x1001"; //Incomplete Documentation (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "Incomplete Documentation";
                 }
                 else if (response.error_text.Contains("BVN"))
                 {
                     Respval = "x1002"; //BVN (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "BVN";
                 }
                 else if (response.error_text.Contains("Dormant Account Restriction"))
                 {
                     Respval = "x1003"; //Dormant Account Restriction (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "Dormant Account Restriction";
                 }
                 else if (response.error_text.Contains("Failed Address Verification"))
                 {
                     Respval = "x1004"; //Dormant Account Restriction (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "Failed Address Verification";
                 }
                 else if (response.error_text.Contains("Unauthorised overdraft"))
                 {
                     Respval = "x1005"; //Unauthorised overdraft of NGN 10 on account
+                    result.ErrorMessage = "Unauthorised overdraft";
                 }
                 else if (response.error_text.Contains("Inactive Account Restriction"))
                 {
                     Respval = "x1006"; //Inactive Account Restriction (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "Inactive Account Restriction";
                 }
                 else if (response.error_text.Contains("INVALID SWIFT CHAR"))
                 {
                     Respval = "x1007"; //INVALID SWIFT CHAR
+                    result.ErrorMessage = "INVALID SWIFT CHAR";
                 }
                 else if (response.error_text.Contains(" REJECTED"))
                 {
                     Respval = "x1008"; //VALIDATION ERROR - REJECTED
+                    result.ErrorMessage = " REJECTED";
                 }
                 else if (response.error_text.Contains("is inactive"))
                 {
                     Respval = "x1009"; //is inactive
+                    result.ErrorMessage = "is inactive";
                 }
                 else if (response.error_text.Contains("Connection refused: connect"))
                 {
                     Respval = "x1010"; //Connection refused: connect
+                    result.ErrorMessage = "Internal server error";
                 }
                 else if (response.error_text.Contains("Account has a short fall of balance"))
                 {
                     Respval = "x1011"; //Account has a short fall of balance
+                    result.ErrorMessage = "Account has a short fall of balance";
+                    result.Message = result.Message + result.ErrorMessage;
                 }
                 else if (response.error_text.Contains("Below minimum value"))
                 {
                     Respval = "x1012"; //Below minimum value
+                    result.ErrorMessage = "Below minimum value";
                 }
                 else if (response.error_text.Contains("TOO MANY DECIMALS"))
                 {
                     Respval = "x1013"; //TOO MANY DECIMALS
+                    result.ErrorMessage = "TOO MANY DECIMALS";
                 }
                 else if (response.error_text == "Account " + transaction.DebitAccountNumber + " - Account Upgrade Required (Override ID - POSTING.RESTRICT)")
                 {
                     Respval = "x1014"; //Account Upgrade Required (Override ID - POSTING.RESTRICT)
+                    result.ErrorMessage = "Account Upgrade Required";
+                    result.Message = result.Message + result.ErrorMessage;
                 }
                 else if (response.error_text.Contains("Customer Address Verification"))
                 {
                     Respval = "x1015"; //Customer Address Verification
+                    result.ErrorMessage = "Customer Address Verification";
                 }
                 else
                 {
                     Respval = "x03";
+                    result.ErrorMessage = "Internal server error";
                     //log.Info("x03 response text " + response.error_text + "THIS WAS ADDED TO CONFIRM");
                 }
 
@@ -1092,7 +1113,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 await nipOutwardTransactionService.Update(transaction);
 
                 result.IsSuccess = false;
-                result.Message = "Transaction Failed";
+                
 
                 outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                 outboundLog.ResponseDetails = $"response:{response.Respreturnedcode1} error text: {response.error_text}";
@@ -1166,6 +1187,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.IsSuccess = true;
             result.Content = incomeAccountsDetails;
             outboundLog.ResponseDetails = $"is success: {result.IsSuccess}";
+            
         }
         catch (System.Exception ex)
         {

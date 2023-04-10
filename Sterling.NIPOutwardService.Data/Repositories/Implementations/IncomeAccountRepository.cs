@@ -114,7 +114,7 @@ public class IncomeAccountRepository : IIncomeAccountRepository
 
     public async Task<Fee?> GetCurrentIncomeAcct()
     {
-        Fee? res = new Fee();
+        Fee? res = null;
         string sql = "spd_getCurrentIncomeAcct";
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetCurrentIncomeAcct)}";
@@ -134,6 +134,7 @@ public class IncomeAccountRepository : IIncomeAccountRepository
                         {
                             while (dr.Read())
                             {
+                                res = new Fee();
                                 res.bra_code = dr["bra_code"].ToString();
                                 res.cusnum = dr["cusnum"].ToString();
                                 res.curcode = dr["curcode"].ToString();

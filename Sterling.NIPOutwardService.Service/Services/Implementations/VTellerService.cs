@@ -328,8 +328,7 @@ public class VTellerService : IVtellerService
         xg.startDebit();
 
         //fee Account table to know what to debit
-        //DataTable dtFeeTable = GetFreeFeeAccount(t.inCust.sub_acct_code).Tables[0];
-        FreeFeeAccount? dtFeeTable = await transactionDetailsRepository.GetFreeFeeAccount(t.inCust.sub_acct_code);
+        FreeFeeAccount dtFeeTable = await transactionDetailsRepository.GetFreeFeeAccount(t.inCust.sub_acct_code);
         this.outboundLogs.Add(transactionDetailsRepository.GetOutboundLog());
 
         if (dtFeeTable != null && !string.IsNullOrEmpty(dtFeeTable?.feeAccount) && !string.IsNullOrEmpty(dtFeeTable?.VatAccount))
@@ -364,20 +363,15 @@ public class VTellerService : IVtellerService
         }
 
         xg.closeXML();
-        //new ErrorLog("Request to vTeller " + xg.req.ToString() + " for " + t.sessionid);
+        
         var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         try
         {
             outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.APIMethod = $"VTeller.nfpSoapClient.NIBBSAsync";
             outboundLog.RequestDetails = $"{xg.req}";
-            // using (VTeller.nfpSoapClient vs = new VTeller.nfpSoapClient(VTeller.nfpSoapClient.EndpointConfiguration.nfpSoap, appSettings.VTellerSoapService))
-            // {
-            //     var vTellerResp = await vs.NIBBSAsync(xg.req, t.ID.ToString(), t.SessionID);
-            //     xg.resp = vTellerResp.Body.NIBBSResult;
-            // }
 
-            var response = await AccountCreditRouter(xg.req, t.ID.ToString(), t.SessionID);
+            var response = await AccountDebitRouter(xg.req, t.ID.ToString(), t.SessionID);
 
             if(response.IsSuccess)
             {
@@ -452,11 +446,15 @@ public class VTellerService : IVtellerService
         return vTellerResponse;
     }
 
-    private async Task<VtellerAPIResponseDto> AccountCreditRouter(string Xml, string TransactionType, string SessionId)
+    private async Task<VtellerAPIResponseDto> AccountDebitRouter(string Xml, string TransactionType, string SessionId)
     {
         VtellerAPIResponseDto response = new();
+        var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
         try
         {
+            outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.AccountDebitRouter)}";
+            outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+            
             VtellerRequestDto request = new()
             {
                 SessionId = SessionId,
@@ -464,24 +462,32 @@ public class VTellerService : IVtellerService
                 Xml = Xml
             };
             string seralisedRequest = JsonConvert.SerializeObject(request);
+            outboundLog.RequestDetails = seralisedRequest;
+
             EncryptedDto encryptedRequest = new()
             {
                 Data = encryption.EncryptAes(seralisedRequest, appSettings.AesSecretKey, appSettings.AesInitializationVector)
             };
-            Log.Information($"Method: VtellerRouter. Plain request sent: {seralisedRequest}");
+
             string checkSum = encryption.CalculateChecksum(appSettings.VtellerProperties.ApiKey);
             EncryptedDto encryptedResponse = await CallVTeller(encryptedRequest, checkSum);
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+
             string decryptedResponse = encryption.DecryptAes(encryptedResponse.Data, appSettings.AesSecretKey, appSettings.AesInitializationVector);
-            Log.Information($"Method: VtellerRouter. Plain response received: {decryptedResponse}");
+            outboundLog.ResponseDetails = decryptedResponse;
+
             if (!string.IsNullOrEmpty(decryptedResponse)) response = JsonConvert.DeserializeObject<VtellerAPIResponseDto>(decryptedResponse);
             else response.IsSuccess = false;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Error occured routing to vteller for: {Xml} and SessionId: {SessionId}");
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+            "\r\n" + $@"Exception Details: {ex.Message} {ex.StackTrace}";
             response.IsSuccess = false;
             response.ResponseTime = DateTime.UtcNow.AddHours(1);
         }
+
+        this.outboundLogs.Add(outboundLog);
         return response;
     }
 
