@@ -590,7 +590,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     model.StatusFlag = 18;
                     await nipOutwardTransactionService.Update(model);
                     result.Message = "Transaction failed";
-                    result.E
                     result.IsSuccess = false;
                     outboundLog.ResponseDetails = "Unable to form the VAT account for ledcode 17201";
                     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
