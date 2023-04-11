@@ -42,16 +42,19 @@ public static class DependencyInjection
         //x.Authority = configuration["Token_Issuer"];
     });
 
+        services.AddScoped<INIPOutwardNameEnquiryService, NIPOutwardNameEnquiryService>();
+        services.AddScoped<INIPOutwardNameEnquiryRepository, NIPOutwardNameEnquiryRepository>();
+        services.AddScoped<ISSM, SSM>();
+        services.AddHttpContextAccessor();
+
         return services;
     }
 
     public static IServiceCollection AddAPIDependencies(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<INIPOutwardNameEnquiryService, NIPOutwardNameEnquiryService>();
-        services.AddScoped<INIPOutwardNameEnquiryRepository, NIPOutwardNameEnquiryRepository>();
-        services.AddHttpContextAccessor();
         
-        services.AddScoped<ISSM, SSM>();
+        
+        
         var apiSettings = configuration.GetSection("APISettings");
         services.Configure<APISettings>(apiSettings);
 

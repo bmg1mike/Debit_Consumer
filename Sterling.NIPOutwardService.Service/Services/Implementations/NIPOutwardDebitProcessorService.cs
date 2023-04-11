@@ -202,7 +202,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             }
 
             outboundLogs.Add(nipOutwardSendToNIBSSProducerService.GetOutboundLog());
-           // await inboundLogService.CreateInboundLog(inboundLog);
+            // await inboundLogService.CreateInboundLog(inboundLog);
             return mapper.Map<FundsTransferResult<string>>(debitAccountResult);
             
 
