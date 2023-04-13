@@ -27,6 +27,8 @@ public class AppSettings
     public string AesSecretKey { get; set; }
     public string AesInitializationVector { get; set; }
     public VtellerProperties VtellerProperties { get; set; }
+    public WalletFraudAnalyticsProperties WalletFraudAnalyticsProperties { get; set; }
+    public WalletTransactionServiceProperties WalletTransactionServiceProperties { get; set; }
 }
 
 public class VtellerProperties 
@@ -34,4 +36,21 @@ public class VtellerProperties
     public string ApiKey { get; set; }
     public string BaseUrl { get; set; }
     public string DebitRequest { get; set; }
+}
+
+public class WalletFraudAnalyticsProperties 
+{
+    public string BaseUrl { get; set; }
+    public string GetScoreRequest { get; set; }
+    public int TransactionType { get; set; }
+    public bool IsWalletOnly { get; set; }
+}
+
+public class WalletTransactionServiceProperties
+{
+    public string BaseUrl { get; set; }
+    public string TransferRequest { get; set; }
+    public string SecretKey { get; set; }
+    public string IV { get; set; }
+    public string WalletPoolAccount { get; set; }
 }

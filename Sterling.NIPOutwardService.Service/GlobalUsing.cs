@@ -40,5 +40,12 @@ global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnqu
 global using Sterling.NIPOutwardService.Service.Helpers.Interfaces;
 global using Sterling.NIPOutwardService.Data.Repositories.Implementations;
 global using Sterling.NIPOutwardService.Service.Helpers.Implementations;
+global using Sterling.NIPOutwardService.Service.Services.Interfaces.ExternalServices;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.WalletFraudAnalytics;
+global using static System.Net.Mime.MediaTypeNames;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.WalletToWallet;
+
+ 
+
 
 
