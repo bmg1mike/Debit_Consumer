@@ -1,3 +1,5 @@
+using Sterling.NIPOutwardService.Service.Services.Implementations.ExternalServices;
+
 namespace Sterling.NIPOutwardService.Service;
 
 public static class DependencyInjection
@@ -14,6 +16,11 @@ public static class DependencyInjection
         services.AddScoped<INIPOutwardTransactionService, NIPOutwardTransactionService>();
         services.AddScoped<ITransactionAmountLimitService, TransactionAmountLimitService>();
         services.AddScoped<IEncryption, Encryption>();
+        services.AddScoped<INIPOutwardWalletTransactionService, NIPOutwardWalletTransactionService>();
+        services.AddScoped<IWalletFraudAnalyticsService, WalletFraudAnalyticsService>();
+        services.AddScoped<INIPOutwardWalletTransactionRepository, NIPOutwardWalletTransactionRepository>();
+        services.AddScoped<IWalletTransactionService, WalletTransactionService>();
+        
 
         services.AddHttpClient<IFraudAnalyticsService, FraudAnalyticsService>()
         .AddPolicyHandler(GetRetryPolicy());
@@ -47,16 +54,8 @@ public static class DependencyInjection
         services.AddScoped<ISSM, SSM>();
         services.AddHttpContextAccessor();
 
-        return services;
-    }
-
-    public static IServiceCollection AddAPIDependencies(this IServiceCollection services, IConfiguration configuration)
-    {
-        
-        
-        
-        var apiSettings = configuration.GetSection("APISettings");
-        services.Configure<APISettings>(apiSettings);
+        var NibssNipServiceProperties = configuration.GetSection("APPSettings:NibssNipServiceProperties");
+        services.Configure<NibssNipServiceProperties>(NibssNipServiceProperties);
 
         return services;
     }

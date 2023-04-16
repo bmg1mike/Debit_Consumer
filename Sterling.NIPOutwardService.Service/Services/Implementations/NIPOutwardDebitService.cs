@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Http;
-
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public class NIPOutwardDebitService : INIPOutwardDebitService
 {
     private readonly INIPOutwardDebitProcessorService nipOutwardDebitProcessorService;
+    private readonly INIPOutwardWalletTransactionService nipOutwardWalletTransactionService;
+
     private readonly INIPOutwardDebitProducerService nipOutwardDebitProducerService;
     private readonly INIPOutwardTransactionService nipOutwardTransactionService;
     private InboundLog inboundLog;
@@ -15,8 +15,9 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     public NIPOutwardDebitService(INIPOutwardDebitProcessorService nipOutwardDebitProcessorService, 
     INIPOutwardDebitProducerService nipOutwardDebitProducerService, IInboundLogService inboundLogService,
     INIPOutwardTransactionService nipOutwardTransactionService, IMapper mapper, IUtilityHelper utilityHelper,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor, INIPOutwardWalletTransactionService nipOutwardWalletTransactionService)
     {
+        this.nipOutwardWalletTransactionService = nipOutwardWalletTransactionService;
         this.nipOutwardDebitProcessorService = nipOutwardDebitProcessorService;
         this.nipOutwardDebitProducerService = nipOutwardDebitProducerService;
         this.inboundLog = new InboundLog {
@@ -33,26 +34,67 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     public async Task<FundsTransferResult<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
     {
         var response = new FundsTransferResult<string>();
-        response.RequestTime = DateTime.UtcNow.AddHours(1);
-        response.PaymentReference = request.PaymentReference;
+        try
+        {
+            var requestTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.RequestDateTime = requestTime;
+            inboundLog.APICalled = "NIPOutwardService";
+            inboundLog.APIMethod = "FundsTransfer";
+            inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+            inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
 
-        inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.APICalled = "NIPOutwardService";
-        inboundLog.APIMethod = "FundsTransfer";
-        inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+            response = await Process(request);
 
-        inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
+            response.RequestTime = requestTime;
+            response.PaymentReference = request.PaymentReference;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = string.Empty;
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
+            inboundLog.ResponseDateTime = response.ResponseTime;
+            await inboundLogService.CreateInboundLog(inboundLog);
+        }
+        catch (System.Exception ex)
+        {
+            response.IsSuccess = false;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = string.Empty;
+            response.Message = "Transaction failed";
+            response.ErrorMessage = "Internal server error";
+            Log.Information(ex, $"Error thrown, raw request: {JsonConvert.SerializeObject(request)} ");
+        }
+        
+        return response;
+    }
+
+    public async Task<FundsTransferResult<string>> Process(CreateNIPOutwardTransactionDto request)
+    {
+        var response = new FundsTransferResult<string>();
+
+        var validationResult = ValidateCreateNIPOutwardTransactionDto(request);
+
+        if(!validationResult.IsSuccess)
+        {
+            response = mapper.Map<FundsTransferResult<string>>(validationResult);
+            return response;
+        }
+
+        if(request.IsWalletTransaction)
+        {
+             var callWalletResult = await CallWalletService(request);
+
+            if(!callWalletResult.IsSuccess)
+            {
+                response = mapper.Map<FundsTransferResult<string>>(callWalletResult);
+                return response;
+            }
+        }
+       
         
         var createTransactionResult = await CreateTransaction(request);
         
         if(!createTransactionResult.IsSuccess)
         {
             response = mapper.Map<FundsTransferResult<string>>(createTransactionResult);
-            response.ResponseTime = DateTime.UtcNow.AddHours(1);
-            response.Content = string.Empty;
-            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
-            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            await inboundLogService.CreateInboundLog(inboundLog);
             return response;
         }
 
@@ -63,11 +105,6 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         if(!generateFundsTransferSessionIdResult.IsSuccess)
         {
             response = mapper.Map<FundsTransferResult<string>>(generateFundsTransferSessionIdResult);
-            response.ResponseTime = DateTime.UtcNow.AddHours(1);
-            response.Content = string.Empty;
-            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
-            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            await inboundLogService.CreateInboundLog(inboundLog);
             return response;
         }
 
@@ -85,17 +122,20 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         }           
         
         response.SessionID = nipOutwardTransaction.SessionID;
-        response.ResponseTime = DateTime.UtcNow.AddHours(1);
-        response.Content = string.Empty;
-        response.PaymentReference = request.PaymentReference;
-        inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
-        inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-        
-        await inboundLogService.CreateInboundLog(inboundLog);
         
         return response;
     }
 
+    public async Task<FundsTransferResult<string>> CallWalletService(CreateNIPOutwardTransactionDto request)
+    {
+        var nipOutwardWalletTransaction = mapper.Map<NIPOutwardWalletTransaction>(request);
+        nipOutwardWalletTransaction.DateAdded = DateTime.UtcNow.AddHours(1);
+        nipOutwardWalletTransaction.LastUpdate = DateTime.UtcNow.AddHours(1);
+        
+        var result = await nipOutwardWalletTransactionService.ProcessTransaction(nipOutwardWalletTransaction);
+        inboundLog.OutboundLogs.AddRange(nipOutwardWalletTransactionService.GetOutboundLogs());
+        return result;
+    }
     public async Task<FundsTransferResult<NIPOutwardTransaction>> CreateTransaction(CreateNIPOutwardTransactionDto request) 
     {
         FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
@@ -115,6 +155,34 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             Exception Details: {ex.Message} {ex.StackTrace}";
             return result;
         }
+    }
+
+    public FundsTransferResult<NIPOutwardTransaction> ValidateCreateNIPOutwardTransactionDto(CreateNIPOutwardTransactionDto request)
+    {
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
+        result.IsSuccess = false;
+
+        CreateNIPOutwardTransactionDtoValidator validator = new CreateNIPOutwardTransactionDtoValidator();
+        ValidationResult results = validator.Validate(request);
+
+        if (!results.IsValid)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var failure in results.Errors)
+            {
+                sb.Append("Property " + failure.PropertyName + " failed validation. Error was: " + failure.ErrorMessage);
+            }
+
+            result.IsSuccess = false;
+            result.ErrorMessage = sb.ToString();
+            result.Message = "Invalid transaction";
+
+        }
+        else{
+             result.IsSuccess = true;
+        }
+
+        return result;
     }
 
     public async Task<FundsTransferResult<NIPOutwardTransaction>> GenerateFundsTransferSessionId(NIPOutwardTransaction transaction)

@@ -44,6 +44,7 @@ global using Sterling.NIPOutwardService.Service.Services.Interfaces.ExternalServ
 global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.WalletFraudAnalytics;
 global using static System.Net.Mime.MediaTypeNames;
 global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.WalletToWallet;
+global using Microsoft.AspNetCore.Http;
 
  
 

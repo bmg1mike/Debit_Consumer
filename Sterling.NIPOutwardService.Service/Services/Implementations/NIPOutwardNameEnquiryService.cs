@@ -10,25 +10,29 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
     public string xml;
     private readonly ISSM ssm;
     private readonly AppSettings appSettings;
-    private readonly APISettings apiSettings;
+    private readonly NibssNipServiceProperties nibssNipServiceProperties;
     private InboundLog inboundLog;
     private readonly IInboundLogService inboundLogService;
     private readonly INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository;
+    private readonly IHttpContextAccessor httpContextAccessor;
+
     private readonly AsyncRetryPolicy retryPolicy;
     private List<OutboundLog> outboundLogs;
 
-    public NIPOutwardNameEnquiryService(ISSM ssm, IOptions<AppSettings> appSettings, IOptions<APISettings> apiSettings,
-        IInboundLogService inboundLogService, INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository)
+    public NIPOutwardNameEnquiryService(ISSM ssm, IOptions<AppSettings> appSettings, IOptions<NibssNipServiceProperties> nibssNipServiceProperties,
+        IInboundLogService inboundLogService, INIPOutwardNameEnquiryRepository nipOutwardNameEnquiryRepository,
+        IHttpContextAccessor httpContextAccessor)
     {
         this.ssm = ssm;
         this.appSettings = appSettings.Value;
-        this.apiSettings = apiSettings.Value;
+        this.nibssNipServiceProperties = nibssNipServiceProperties.Value;
         this.inboundLog = new InboundLog {
             InboundLogId = ObjectId.GenerateNewId().ToString(), 
             OutboundLogs = new List<OutboundLog>(),
             };
         this.outboundLogs = new List<OutboundLog> ();
         this.inboundLogService = inboundLogService;
+        this.httpContextAccessor = httpContextAccessor;
         this.nipOutwardNameEnquiryRepository = nipOutwardNameEnquiryRepository;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
@@ -48,27 +52,50 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
     public async Task<Result<NameEnquiryResponseDto>> DoNameEnquiry(NameEnquiryRequestDto request)
     {
         var response = new Result<NameEnquiryResponseDto>();
-        inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.APICalled = apiSettings.NIPNIBSSService;
-        inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
 
+        try
+        {
+            var requestTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.RequestDateTime = requestTime;
+            inboundLog.APICalled = "NIPOutwardService";
+            inboundLog.APIMethod = "NameEnquiry";
+            inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
+            inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+
+            response = await ProcessNameEnquiry(request);
+
+            response.SessionID = request.SessionID;
+            response.RequestTime = requestTime;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
+            inboundLog.ResponseDateTime = response.ResponseTime;
+            inboundLog.OutboundLogs = outboundLogs;
+
+            await inboundLogService.CreateInboundLog(inboundLog);
+        }
+        catch (System.Exception ex)
+        {
+            response.IsSuccess = false;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = null;
+            response.Message = "Transaction failed";
+            response.ErrorMessage = "Internal server error";
+            Log.Information(ex, $"Error thrown, raw request: {JsonConvert.SerializeObject(request)} ");
+        }
+        
+        return response;
+    }
+
+    public async Task<Result<NameEnquiryResponseDto>> ProcessNameEnquiry(NameEnquiryRequestDto request)
+    {
         var validationResult = ValidateNameEnquiryResponseDto(request);
 
         if(!validationResult.IsSuccess)
         {
-            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            inboundLog.ResponseDetails = validationResult.ErrorMessage;
-            await inboundLogService.CreateInboundLog(inboundLog);
             return validationResult;
         }
 
-        var nameEnquiryResult = await NameEnquiry(request);
-        response = nameEnquiryResult;
-        inboundLog.OutboundLogs = outboundLogs;
-        inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
-        await inboundLogService.CreateInboundLog(inboundLog);
-        return response;
+        return await NameEnquiry(request);;
     }
 
     public async Task<Result<NameEnquiryResponseDto>> NameEnquiry(NameEnquiryRequestDto request)
@@ -101,9 +128,6 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             response.Message = "Success";
             response.IsSuccess = true;
 
-            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
-            await inboundLogService.CreateInboundLog(inboundLog);
             return response;
         }
         
@@ -179,7 +203,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
 
             result.IsSuccess = false;
             result.ErrorMessage = sb.ToString();
-            result.Message = "Invalid transaction";
+            result.Message = "Invalid request";
 
            
         }
@@ -208,20 +232,20 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         try
         {
             outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.APICalled = apiSettings.NIPNIBSSService;
+            outboundLog.APICalled = nibssNipServiceProperties.NIPNIBSSService;
             outboundLog.RequestDetails = request;
 
             BasicHttpBinding binding = new()
             {
-                CloseTimeout = TimeSpan.FromMinutes(apiSettings.NIBSSNIPServiceCloseTimeoutInMinutes),
-                OpenTimeout = TimeSpan.FromMinutes(apiSettings.NIBSSNIPServiceOpenTimeoutInMinutes),
-                ReceiveTimeout = TimeSpan.FromMinutes(apiSettings.NIBSSNIPServiceReceiveTimeoutInMinutes),
-                SendTimeout = TimeSpan.FromMinutes(apiSettings.NIBSSNIPServiceSendTimeoutInMinutes),
-                MaxBufferPoolSize = apiSettings.NIBSSNIPServiceMaxBufferPoolSize,
-                MaxReceivedMessageSize = apiSettings.NIBSSNIPServiceMaxReceivedMessageSize
+                CloseTimeout = TimeSpan.FromMinutes(nibssNipServiceProperties.NIBSSNIPServiceCloseTimeoutInMinutes),
+                OpenTimeout = TimeSpan.FromMinutes(nibssNipServiceProperties.NIBSSNIPServiceOpenTimeoutInMinutes),
+                ReceiveTimeout = TimeSpan.FromMinutes(nibssNipServiceProperties.NIBSSNIPServiceReceiveTimeoutInMinutes),
+                SendTimeout = TimeSpan.FromMinutes(nibssNipServiceProperties.NIBSSNIPServiceSendTimeoutInMinutes),
+                MaxBufferPoolSize = nibssNipServiceProperties.NIBSSNIPServiceMaxBufferPoolSize,
+                MaxReceivedMessageSize = nibssNipServiceProperties.NIBSSNIPServiceMaxReceivedMessageSize
             };
 
-            NIPInterfaceClient nipClient = new NIPInterfaceClient(binding, new EndpointAddress(apiSettings.NIPNIBSSService));
+            NIPInterfaceClient nipClient = new NIPInterfaceClient(binding, new EndpointAddress(nibssNipServiceProperties.NIPNIBSSService));
            
             string str = ssm.Encrypt(request);
             xml = nipClient.nameenquirysingleitem(str);
@@ -231,9 +255,9 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         }
         catch (Exception ex)
         {
+            ok = false;
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
-            ok = false;
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             //ResponseCode = "96";
         }
@@ -246,7 +270,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
     {
         NameEnquiryResponseDto response = new NameEnquiryResponseDto();
         var outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
-        outboundLog.APIMethod = "ReadNameEnquiryResponse";
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.readResponse)}";
 
         try
         {

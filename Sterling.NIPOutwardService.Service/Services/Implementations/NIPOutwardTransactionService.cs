@@ -10,8 +10,9 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
     private OutboundLog outboundLog;
     private InboundLog inboundLog;
     private readonly IInboundLogService inboundLogService;
+    private readonly IHttpContextAccessor httpContextAccessor;
     public NIPOutwardTransactionService(INIPOutwardTransactionRepository repository, IMapper mapper, 
-    IInboundLogService inboundLogService)
+    IInboundLogService inboundLogService, IHttpContextAccessor httpContextAccessor)
     {
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString()};
         this.repository = repository;
@@ -21,6 +22,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             OutboundLogs = new List<OutboundLog>(),
             };
         this.inboundLogService = inboundLogService;
+        this.httpContextAccessor = httpContextAccessor;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
         {
@@ -43,14 +45,14 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         try
         {
             
-            var validationResult = ValidateCreateNIPOutwardTransactionDto(request);
+            // var validationResult = ValidateCreateNIPOutwardTransactionDto(request);
 
-            if(!validationResult.IsSuccess){
-                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                outboundLog.ResponseDetails = validationResult.ErrorMessage;
-                inboundLog.OutboundLogs.Add(outboundLog);
-                return validationResult;
-            }
+            // if(!validationResult.IsSuccess){
+            //     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            //     outboundLog.ResponseDetails = validationResult.ErrorMessage;
+            //     //inboundLog.OutboundLogs.Add(outboundLog);
+            //     return validationResult;
+            // }
             
             var model = mapper.Map<NIPOutwardTransaction>(request);
             model.StatusFlag = 3;
@@ -128,10 +130,47 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
 
     public async Task<Result<string>> CheckIfTransactionIsSuccessful(TransactionValidationRequestDto request)
     {
-        inboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        inboundLog.APIMethod = $"{this.ToString()}.{nameof(this.CheckIfTransactionIsSuccessful)}";
-        inboundLog.RequestDetails = $@"PaymentReference {request.SessionID}";
+        var response = new Result<string>();
+        try
+        {
+            var requestTime = DateTime.UtcNow.AddHours(1);
+            inboundLog.RequestDateTime = requestTime;
+            inboundLog.APICalled = "NIPOutwardService";
+            inboundLog.APIMethod = "TransactionValidation";
+            inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
+            inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
 
+            response = await ProcessCheck(request);
+
+            response.SessionID = request.SessionID;
+            response.RequestTime = requestTime;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = string.Empty;
+            inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
+            inboundLog.ResponseDateTime = response.ResponseTime;
+
+            if(!string.IsNullOrEmpty(outboundLog.ExceptionDetails))
+            {
+                inboundLog.OutboundLogs.Add(outboundLog);
+            }
+
+            await inboundLogService.CreateInboundLog(inboundLog);
+        }
+        catch (System.Exception ex)
+        {
+            response.IsSuccess = false;
+            response.ResponseTime = DateTime.UtcNow.AddHours(1);
+            response.Content = string.Empty;
+            response.Message = "Transaction failed";
+            response.ErrorMessage = "Internal server error";
+            Log.Information(ex, $"Error thrown, raw request: {JsonConvert.SerializeObject(request)} ");
+        }
+       
+        return response;
+    }
+
+    public async Task<Result<string>> ProcessCheck(TransactionValidationRequestDto request)
+    {
         Result<string> result = new Result<string>();
         result.IsSuccess = false;
         try
@@ -140,9 +179,6 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
 
             if(!validationResult.IsSuccess)
             {
-                inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-                inboundLog.ResponseDetails = validationResult.ErrorMessage;
-                await inboundLogService.CreateInboundLog(inboundLog);
                 return validationResult;
             }
 
@@ -167,9 +203,6 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
                 result.Message = "Transaction processing";
                 result.IsSuccess = false;
             }
-
-            inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            inboundLog.ResponseDetails = JsonConvert.SerializeObject(result);
             
         }
         catch (System.Exception ex)
@@ -179,14 +212,12 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             inboundLog.ExceptionDetails = $@"PaymentReference {request.SessionID} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }
-        inboundLog.OutboundLogs.Add(outboundLog);
-        await inboundLogService.CreateInboundLog(inboundLog);
         return result;
     }
 
-    public FundsTransferResult<string> ValidateTransactionValidationRequestDto(TransactionValidationRequestDto request)
+    public Result<string> ValidateTransactionValidationRequestDto(TransactionValidationRequestDto request)
     {
-        FundsTransferResult<string> result = new FundsTransferResult<string>();
+        Result<string> result = new Result<string>();
         result.IsSuccess = false;
 
         TransactionValidationRequestDtoValidator validator = new TransactionValidationRequestDtoValidator();
@@ -202,7 +233,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
 
             result.IsSuccess = false;
             result.ErrorMessage = sb.ToString();
-            result.Message = sb.ToString();
+            result.Message = "Invalid request";
 
            
         }

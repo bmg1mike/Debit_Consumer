@@ -28,5 +28,6 @@ public class CreateNIPOutwardTransactionDto
     public string TransactionLocation { get; set; }
     public int AppId { get; set; }
     public int PriorityLevel { get; set; }
+    public bool IsWalletTransaction { get; set; }
     
 }

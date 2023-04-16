@@ -41,7 +41,7 @@ spec:
               value: https://fsscoringtest.azurewebsites.net
             - name: AppSettings__VtellerProperties_BaseUrl
               value: http://10.0.41.102:3654
-            - name: ApiSettings__NIPNIBSSService
+            - name: AppSettings__NibssNipServiceProperties__NIPNIBSSService
               value: http://192.234.10.204:86/NIPWS/NIPInterface
           resources:
             requests:

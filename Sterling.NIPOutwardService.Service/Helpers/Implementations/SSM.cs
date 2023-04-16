@@ -7,15 +7,15 @@ namespace Sterling.NIPOutwardService.Service.Helpers.Implementations;
 
 public class SSM : ISSM
 {
-    private readonly APISettings apiSettings;
+    private readonly NibssNipServiceProperties nibssNipServiceProperties;
     private readonly ILogger logger;
     //private string username = "sterlingnibsstest@test.com";
     //private string password = "Pass123";
     
     
-    public SSM(IOptions<APISettings> apiSettings, ILogger logger)
+    public SSM(IOptions<NibssNipServiceProperties> nibssNipServiceProperties, ILogger logger)
     {
-        this.apiSettings = apiSettings.Value;
+        this.nibssNipServiceProperties = nibssNipServiceProperties.Value;
         this.logger = logger;
 
     }
@@ -123,8 +123,8 @@ public class SSM : ISSM
     {
         //Stream? response_stream = null;
         //MemoryStream? response_output_stream = null;
-        string? bank_private_key_password = apiSettings.NIBSSPrivateKeyPassword;
-        string? bank_private_key_file = apiSettings.NIBSSPrivateKeyPath;
+        string? bank_private_key_password = nibssNipServiceProperties.NIBSSPrivateKeyPassword;
+        string? bank_private_key_file = nibssNipServiceProperties.NIBSSPrivateKeyPath;
         byte[] byte_response = Hex.GetBytes(hex_response, out _);
         MemoryStream? response_output_stream = new();
         Stream? response_stream = new MemoryStream(byte_response);
@@ -209,7 +209,7 @@ public class SSM : ISSM
             string input_hex = ""; string? encrypt_val = "";
             MemoryStream? input_stream = null;
             MemoryStream? output_stream = null;
-            string? nibss_public_key_file = apiSettings.NIBSSPublicKeyPath;
+            string? nibss_public_key_file = nibssNipServiceProperties.NIBSSPublicKeyPath;
             PGPLib pgp = new();
             input_stream = new MemoryStream(new System.Text.UTF8Encoding().GetBytes(request));
             output_stream = new MemoryStream();

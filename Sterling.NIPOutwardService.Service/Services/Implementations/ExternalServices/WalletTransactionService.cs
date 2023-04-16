@@ -43,7 +43,7 @@ public class WalletTransactionService:IWalletTransactionService
             .PostAsync(appSettings.WalletTransactionServiceProperties.TransferRequest, requestPayload); 
             var response = httpResponseMessage.Content.ReadAsStringAsync().Result;
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.RequestDetails = response;
+            outboundLog.ResponseDetails = response;
 
             var decryptedPayload = encryption.DecryptAes(response, 
             appSettings.WalletTransactionServiceProperties.SecretKey, appSettings.WalletTransactionServiceProperties.IV);
@@ -56,7 +56,6 @@ public class WalletTransactionService:IWalletTransactionService
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
             "\r\n" + $@"Exception Details: {ex.Message} {ex.StackTrace}";
-            //logger.Error($"Exception occured during FraudAPIScore call. DateTime: {DateTime.Now}  Messg: {ex.Message} StackTrace: {ex.StackTrace} ");
             return null;
         }
     }

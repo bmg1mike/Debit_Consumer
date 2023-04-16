@@ -20,58 +20,26 @@ public partial class NIPOutwardTransactionController : BaseController
     [HttpPost]
     [Route("FundsTransfer")]
     public async Task<ActionResult> FundsTransfer([FromBody][Required] CreateNIPOutwardTransactionDto request)
-    {        
+    {   
         FundsTransferResult<string> response =  await nipOutwardDebitService.ProcessTransaction(request);
-
-        // if(!response.IsSuccess)
-        // {
-        //     response.ErrorMessage = response.Message;
-        //     response.Message = "Transaction failed";
-        // }
         
         return Ok(response);
     }
     [HttpPost]
     [Route("TransactionValidation")]
     public async Task<ActionResult> TransactionValidation([FromBody][Required] TransactionValidationRequestDto request)
-    {
-        var result = new Result<string>();
-        result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new Result<string>();
-        
-        response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccessful(request);
+    {        
+        Result<string> response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccessful(request);
 
-        if(!response.IsSuccess)
-        {
-            response.ErrorMessage = response.Message;
-        }
-        response.Content = string.Empty;
-
-        result = response;
-        result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        result.SessionID = request.SessionID;
-        return Ok(result);
+        return Ok(response);
     }
     [HttpPost]
     [Route("NameEnquiry")]
     public async Task<ActionResult> NameEnquiry([FromBody][Required] NameEnquiryRequestDto request)
     {
-        var result = new Result<NameEnquiryResponseDto?>();
-        result.RequestTime = DateTime.UtcNow.AddHours(1);
-        var response = new Result<NameEnquiryResponseDto?>();
 
-        response = await nipOutwardNameEnquiryService.DoNameEnquiry(request);
+        Result<NameEnquiryResponseDto> response = await nipOutwardNameEnquiryService.DoNameEnquiry(request);
 
-        if (!response.IsSuccess)
-        {
-            response.ErrorMessage = response.Message;
-            response.Content = null;
-
-        }
-
-        result = response;
-        result.ResponseTime = DateTime.UtcNow.AddHours(1);
-        result.SessionID = request.SessionID;
-        return Ok(result);
+        return Ok(response);
     }
 }

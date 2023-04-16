@@ -91,7 +91,7 @@ builder.Services.AddHealthChecks()
             name: "Kafka Send To NIBSS Producer",
             failureStatus: HealthStatus.Degraded)
     .AddUrlGroup(new Uri    
-            (builder.Configuration.GetSection("ApiSettings:NIPNIBSSService").Value),
+            (builder.Configuration.GetSection("AppSettings:NibssNipServiceProperties:NIPNIBSSService").Value),
              name: "NIBSS Web Service",
              failureStatus: HealthStatus.Degraded);
 
@@ -104,7 +104,6 @@ builder.Services.AddDataDependencies(builder.Configuration);
 builder.Services.AddServiceDependencies(builder.Configuration);
 builder.Services.AddDebitProducerServiceDependencies(builder.Configuration);
 builder.Services.AddSendToNIBBSProducerServiceDependencies(builder.Configuration);
-builder.Services.AddAPIDependencies(builder.Configuration);
 
 builder.Services.AddApiVersioning(x =>  
             {  
