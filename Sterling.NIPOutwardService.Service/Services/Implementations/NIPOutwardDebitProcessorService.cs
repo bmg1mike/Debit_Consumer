@@ -210,7 +210,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {nipOutwardTransaction} 
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLogs.Add(outboundLog);
@@ -282,7 +283,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = "Transaction object:" + JsonConvert.SerializeObject(vTellerTransactionDto) + 
             $@"  holidayFound: {holidayFound}, customerStatusCode: {customerStatusCode}, cus_class: {customerClass}";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
@@ -349,7 +351,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = JsonConvert.SerializeObject(transaction);
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
@@ -419,7 +422,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = JsonConvert.SerializeObject(transaction);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
@@ -493,7 +497,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = JsonConvert.SerializeObject(transaction);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
@@ -545,7 +550,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = JsonConvert.SerializeObject(transaction);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
@@ -637,7 +643,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             await nipOutwardTransactionService.Update(model);
             
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
             result.ErrorMessage = "Error: Unable to compute VAT and Fee for account";
             var request = JsonConvert.SerializeObject(createVTellerTransactionDto);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
@@ -729,7 +735,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         {
             result.IsSuccess = false;
             result.Content = transaction;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = "Transaction object:" + JsonConvert.SerializeObject(transaction) + 
             " Concession Transaction Amount Limit object:" + JsonConvert.SerializeObject(concessionTransactionAmountLimit);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
@@ -897,7 +904,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = "Transaction object:" + JsonConvert.SerializeObject(transaction) + 
             $@"  holidayFound: {holidayFound}, customerStatusCode: {customerStatusCode}, cus_class: {cus_class}";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
@@ -967,7 +975,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             var request = "Transaction object:" + JsonConvert.SerializeObject(createVTellerTransactionDto) + 
             $@"  branch code: {branchCode}";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
@@ -1149,7 +1158,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             result.Content = transaction;
             var request = "Transaction object:" + JsonConvert.SerializeObject(transaction) + 
             " vTellerResponse: " + JsonConvert.SerializeObject(transaction) +
@@ -1192,7 +1202,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal server error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             outboundLog.ExceptionDetails = $@"Error thrown,
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
@@ -1258,7 +1269,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLogs.Add(outboundLog);
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             return result;
         }
     }

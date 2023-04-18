@@ -45,6 +45,8 @@ public class WalletTransactionService:IWalletTransactionService
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.ResponseDetails = response;
 
+            response = response.Replace("\"", "");
+
             var decryptedPayload = encryption.DecryptAes(response, 
             appSettings.WalletTransactionServiceProperties.SecretKey, appSettings.WalletTransactionServiceProperties.IV);
             

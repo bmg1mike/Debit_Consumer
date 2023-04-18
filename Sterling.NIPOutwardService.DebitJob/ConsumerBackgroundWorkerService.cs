@@ -19,47 +19,62 @@ public class ConsumerBackgroundWorkerService : BackgroundService
     }
     protected async override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        
-        consumer.Subscribe(kafkaDebitConsumerConfig.OutwardDebitTopic);
-
-        while(!stoppingToken.IsCancellationRequested)
+        try
         {
-            
-            var nipOutwardTransactionResults = new ConcurrentBag<ConsumeResult<Ignore, string>>();
+            consumer.Subscribe(kafkaDebitConsumerConfig.OutwardDebitTopic);
 
-            for (int i = 0; i < kafkaDebitConsumerConfig.NumberOfTransactionToConsume; i++)
+            while(!stoppingToken.IsCancellationRequested)
             {
-                nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
-            }
+                
+                var nipOutwardTransactionResults = new ConcurrentBag<ConsumeResult<Ignore, string>>();
 
-            ParallelLoopResult parallelLoopResult = Parallel.ForEach(nipOutwardTransactionResults, transactionResult => 
-            {
-                try
+                for (int i = 0; i < kafkaDebitConsumerConfig.NumberOfTransactionToConsume; i++)
                 {
-                    if(transactionResult != null)
+                    nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
+                }
+
+                logger.Information($"starting call to process {kafkaDebitConsumerConfig.NumberOfTransactionToConsume} transactions in parallel");
+
+                ParallelLoopResult parallelLoopResult = Parallel.ForEach(nipOutwardTransactionResults, transactionResult => 
+                {
+                    try
                     {
-                        var nipOutwardTransaction = JsonConvert.DeserializeObject<NIPOutwardTransaction>(transactionResult.Message.Value);
-                        
-                        if(nipOutwardTransaction != null)
+                        if(transactionResult != null)
                         {
-                            using (var scope = serviceProvider.CreateScope()) // this will use `IServiceScopeFactory` internally
+                            var nipOutwardTransaction = JsonConvert.DeserializeObject<NIPOutwardTransaction>(transactionResult.Message.Value);
+                            
+                            if(nipOutwardTransaction != null)
                             {
-                                var nipOutwardDebitService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitProcessorService>();
-                                var result = nipOutwardDebitService.ProcessTransaction(nipOutwardTransaction).Result;
+                                using (var scope = serviceProvider.CreateScope()) // this will use `IServiceScopeFactory` internally
+                                {
+                                    var nipOutwardDebitService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitProcessorService>();
+                                    var result = nipOutwardDebitService.ProcessTransaction(nipOutwardTransaction).Result;
+                                }
                             }
                         }
                     }
-                }
-                catch (System.Exception ex)
-                {
-                    logger.Error(ex.Message, ex);
-                }
+                    catch (System.Exception ex)
+                    {
+                        logger.Error(ex.Message, ex);
+                    }
 
-                if(kafkaDebitConsumerConfig.ConsumerConfig.EnableAutoOffsetStore == false)
+                    if(kafkaDebitConsumerConfig.ConsumerConfig.EnableAutoOffsetStore == false)
                         consumer.StoreOffset(transactionResult);
-                
-            });
-            
-         }
+                    
+                });
+
+                if (parallelLoopResult.IsCompleted)
+                {
+                    logger.Information($"call to process {kafkaDebitConsumerConfig.NumberOfTransactionToConsume} transactions in parallel ended");
+                    continue;
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            logger.Error(ex.Message, ex);
+           
+        }
+
     }
 }

@@ -8,15 +8,17 @@ public class NIPOutwardWalletTransactionService : INIPOutwardWalletTransactionSe
     private readonly IWalletFraudAnalyticsService walletFraudAnalyticsService;
     private readonly IWalletTransactionService walletTransactionService;
     private readonly AppSettings appSettings;
+    private readonly IUtilityHelper utilityHelper;
     public NIPOutwardWalletTransactionService(INIPOutwardWalletTransactionRepository nipOutwardWalletTransactionRepository,
     IWalletFraudAnalyticsService walletFraudAnalyticsService, IWalletTransactionService walletTransactionService,
-    IOptions<AppSettings> appSettings)
+    IOptions<AppSettings> appSettings,IUtilityHelper utilityHelper )
     {
         this.nipOutwardWalletTransactionRepository = nipOutwardWalletTransactionRepository;
         this.outboundLogs = new List<OutboundLog>();
         this.walletFraudAnalyticsService = walletFraudAnalyticsService;
         this.walletTransactionService = walletTransactionService;
         this.appSettings = appSettings.Value;
+        this.utilityHelper = utilityHelper;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
         {
@@ -43,7 +45,33 @@ public class NIPOutwardWalletTransactionService : INIPOutwardWalletTransactionSe
         {
             request.StatusFlag = 3;
             request.DateAdded = DateTime.UtcNow.AddHours(1);
-            await nipOutwardWalletTransactionRepository.Create(request);
+
+            try
+            {
+                await nipOutwardWalletTransactionRepository.Create(request);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)  when (ex.InnerException.Message.Contains("duplicate key"))
+            {
+                
+                result.IsSuccess = false;
+                result.Message = "Transaction failed. Duplicate request.";
+                result.ErrorMessage = "Transaction failed. Duplicate request.";
+                outboundLog.ExceptionDetails = $@"Error thrown 
+                Exception Details: {ex.InnerException.Message} {ex.StackTrace}";
+                outboundLogs.Add(outboundLog);
+                return result;
+            }
+            catch (System.Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Message = "Transaction failed";
+                result.ErrorMessage = "Internal Server Error";
+                outboundLog.ExceptionDetails = $@"Error thrown Exception Details: {ex.Message} {ex.StackTrace}";
+                outboundLogs.Add(outboundLog);
+                return result;
+            }
+            
+            request.SessionID = utilityHelper.GenerateFundsTransferSessionId(request.ID);
 
             var payload = new WalletFraudAnalyticsRequestDto
             {
@@ -73,6 +101,11 @@ public class NIPOutwardWalletTransactionService : INIPOutwardWalletTransactionSe
                 return result;
             }
             //logger.Info($"FraudApi Response- {JsonConvert.SerializeObject(fraudApiScore)} transaction ID - {item.ID}");
+
+            if (fraudScoreResult.ErrorMessage?.Length > 500)
+            {
+                fraudScoreResult.ErrorMessage = fraudScoreResult.ErrorMessage.Substring(0, 500).Trim();
+            }
 
             if(fraudScoreResult.ResponseCode != "00")
             {
@@ -193,6 +226,7 @@ public class NIPOutwardWalletTransactionService : INIPOutwardWalletTransactionSe
         {
             result.IsSuccess = false;
             result.Message = "Transaction failed";
+            result.ErrorMessage = "Wallet transaction failed";
             outboundLog.ExceptionDetails = $@"Error thrown 
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLogs.Add(outboundLog);

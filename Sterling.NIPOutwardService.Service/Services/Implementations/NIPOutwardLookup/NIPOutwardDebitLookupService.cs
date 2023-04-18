@@ -68,7 +68,8 @@ public class NIPOutwardDebitLookupService:INIPOutwardDebitLookupService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
             "\r\n" + $@"Raw Request {ID} Exception Details: {ex.Message} {ex.StackTrace}";
         }

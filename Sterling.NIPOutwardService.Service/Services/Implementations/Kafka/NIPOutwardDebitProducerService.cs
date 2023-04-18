@@ -50,7 +50,8 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
         }

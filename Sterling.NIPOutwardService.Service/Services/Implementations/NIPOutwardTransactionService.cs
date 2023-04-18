@@ -69,6 +69,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             var rawRequest = JsonConvert.SerializeObject(request);
             result.IsSuccess = false;
             result.Message = "Transaction failed. Duplicate request.";
+            result.ErrorMessage = "Transaction failed. Duplicate request.";
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
             "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.InnerException.Message} {ex.StackTrace}";
             
@@ -77,7 +78,8 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         {
             var rawRequest = JsonConvert.SerializeObject(request);
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal server error";
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
             "\r\n" + $@"Raw Request {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
             
@@ -191,6 +193,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             if(transaction == null)
             {
                 result.Message = "Transaction not found";
+                result.ErrorMessage = "Transaction not found";
                 result.IsSuccess = false;
             }
             else if(transaction.NIBSSResponse == "00")
@@ -208,7 +211,8 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Operation failed";
+            result.ErrorMessage = "Internal Server Error";
             inboundLog.ExceptionDetails = $@"PaymentReference {request.SessionID} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }

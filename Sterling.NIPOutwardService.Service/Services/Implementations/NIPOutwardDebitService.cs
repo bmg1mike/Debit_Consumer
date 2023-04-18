@@ -87,6 +87,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
                 response = mapper.Map<FundsTransferResult<string>>(callWalletResult);
                 return response;
             }
+            request.DebitAccountNumber = request.DebitAccountNumber.Substring(1);
         }
        
         
@@ -150,7 +151,8 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
             inboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
             return result;
@@ -212,7 +214,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
                     
                     transaction.StatusFlag = 0;
                     await nipOutwardTransactionService.Update(transaction);
-                    result.Message = "Internal Server Error";
+                    result.Message = "Transaction failed";
                     result.ErrorMessage = "Unable to update Session ID for transaction";
                     result.IsSuccess = false;
                 }
@@ -233,7 +235,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         catch (System.Exception ex)
         {
             result.IsSuccess = false;
-            result.Message = "Internal Server Error";
+            result.Message = "Transaction failed";
             result.ErrorMessage = "Unable to update Session ID for transaction";
             var request = JsonConvert.SerializeObject(transaction);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
