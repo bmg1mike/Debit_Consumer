@@ -7,6 +7,7 @@ public class AppSettings
     public string NameEnquirySoapService { get; set; }
     public string SterlingBankCode { get; set; }
     public string SterlingProSuspenseAccount { get; set; }
+    public string OneBankWalletPoolAccount { get; set; }
     public string ProxySwitch { get; set; }
     public int ProxyPort { get; set; }
     public string ProxyHost { get; set; }

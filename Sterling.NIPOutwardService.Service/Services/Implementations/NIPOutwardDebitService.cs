@@ -87,7 +87,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
                 response = mapper.Map<FundsTransferResult<string>>(callWalletResult);
                 return response;
             }
-            request.DebitAccountNumber = request.DebitAccountNumber.Substring(1);
+            
         }
        
         

@@ -11,12 +11,14 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
     private InboundLog inboundLog;
     private readonly IInboundLogService inboundLogService;
     private readonly IHttpContextAccessor httpContextAccessor;
+    private readonly AppSettings appSettings;
     public NIPOutwardTransactionService(INIPOutwardTransactionRepository repository, IMapper mapper, 
-    IInboundLogService inboundLogService, IHttpContextAccessor httpContextAccessor)
+    IInboundLogService inboundLogService, IHttpContextAccessor httpContextAccessor, IOptions<AppSettings> appSettings)
     {
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString()};
         this.repository = repository;
         this.mapper = mapper;
+        this.appSettings = appSettings.Value;
         this.inboundLog = new InboundLog {
             InboundLogId = ObjectId.GenerateNewId().ToString(), 
             OutboundLogs = new List<OutboundLog>(),
@@ -57,6 +59,13 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             var model = mapper.Map<NIPOutwardTransaction>(request);
             model.StatusFlag = 3;
             model.DateAdded = DateTime.UtcNow.AddHours(1);
+
+            if(request.IsWalletTransaction)
+            {
+                model.DebitAccountNumber = appSettings.OneBankWalletPoolAccount;
+                model.WalletAccountNumber = request.DebitAccountNumber.Substring(1);
+            }
+
             await repository.Create(model);
 
             result.IsSuccess = true;

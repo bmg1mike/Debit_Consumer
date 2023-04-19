@@ -53,6 +53,7 @@ public class NIPOutwardTransaction
     public string NIBSSResponse { get; set; }
     public int? OutwardTransactionType { get; set; }
     public int? AppsTransactionType { get; set; }
-    
+    public bool IsWalletTransaction { get; set; }
+    public string WalletAccountNumber { get; set; }
 }
 
