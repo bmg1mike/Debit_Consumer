@@ -35,8 +35,9 @@ public partial class InboundLogService : IInboundLogService
            }
         }
         catch(Exception ex)
-        {           
-            logger.Error(ex,"Error while creating InboundLog");
+        {   
+            var rawLog = JsonConvert.SerializeObject(inboundLog);       
+            logger.Error(ex,$"Error while creating InboundLog. Raw Log: {rawLog}");
             result.ErrorMessage = ex.ToString();
             result.Message = "Error while creating InboundLog";
             result.IsSuccess = false;
