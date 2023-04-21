@@ -117,6 +117,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             }
 
             nipOutwardTransaction.OriginatorEmail = getDebitAccountDetailsResult.Content.DebitAccountDetails.Email;
+            nipOutwardTransaction.LedgerCode = vTellerTransactionDto.LedgerCode;
+            nipOutwardTransaction.BranchCode = vTellerTransactionDto.BranchCode;
             vTellerTransactionDto = getDebitAccountDetailsResult.Content.CreateVTellerTransactionDto;
 
             // var doFraudCheckResult = await DoFraudCheck(nipOutwardTransaction, checkLookupResult.Content);

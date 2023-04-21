@@ -155,6 +155,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
                     KYCLevel = nameEnquiryResponse.KYCLevel,
                     AccountNumber = nameEnquiryResponse.AccountNumber,
                     DestinationInstitutionCode = nameEnquiryResponse.DestinationInstitutionCode,
+                    ChannelCode = nameEnquiryResponse.ChannelCode,
                     DateAdded = DateTime.UtcNow.AddHours(1),
                 };
 

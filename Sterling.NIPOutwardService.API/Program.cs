@@ -67,10 +67,6 @@ builder.Services.AddHealthChecks()
              name: "Fraud API",
              failureStatus: HealthStatus.Degraded)
     .AddUrlGroup(new Uri    
-            (builder.Configuration.GetSection("AppSettings:NameEnquirySoapService").Value),
-             name: "Name Enquiry",
-             failureStatus: HealthStatus.Degraded)
-    .AddUrlGroup(new Uri    
             (builder.Configuration.GetSection("AppSettings:VtellerProperties:BaseUrl").Value),
              name: "VTeller",
              failureStatus: HealthStatus.Degraded)

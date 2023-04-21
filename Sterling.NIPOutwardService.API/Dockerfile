@@ -1,8 +1,8 @@
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
 EXPOSE 80
-COPY ["Sterling.NIPOutwardService.API/SSMKeys/public.key", "/app/SSMKeys/"]
-COPY ["Sterling.NIPOutwardService.API/SSMKeys/private.key", "/app/SSMKeys/"]
+#COPY ["Sterling.NIPOutwardService.API/SSMKeys/public.key", "/app/SSMKeys/"]
+#COPY ["Sterling.NIPOutwardService.API/SSMKeys/private.key", "/app/SSMKeys/"]
 
 #ENV ASPNETCORE_ENVIRONMENT="Development"
 

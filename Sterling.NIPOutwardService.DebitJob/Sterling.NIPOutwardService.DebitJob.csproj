@@ -29,5 +29,17 @@
     <ProjectReference Include="..\Sterling.NIPOutwardService.Service\Sterling.NIPOutwardService.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="SSMKeys\private.key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="SSMKeys\public.key">
+     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+   </ItemGroup>
+
 
 </Project>
