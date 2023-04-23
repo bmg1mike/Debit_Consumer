@@ -219,7 +219,7 @@ public class TransactionDetailsRepository:ITransactionDetailsRepository
     public async Task<bool> isBankCodeFound(string bankCode)
     {
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.isLedgerNotAllowed)}";
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.isBankCodeFound)}";
         outboundLog.RequestDetails = $"{bankCode}";
         bool found = false;
         string sql = @"SELECT T24_BRACODE from tbl_sbpbankcodes where T24_BRACODE =@bankCode and statusflag =1";

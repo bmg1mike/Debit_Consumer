@@ -26,6 +26,7 @@ public class AppSettings
     public decimal KUDI_FEE { get; set; }
     public string AesSecretKey { get; set; }
     public string AesInitializationVector { get; set; }
+    public int InMemoryCacheDurationInHours { get; set; }
     public VtellerProperties VtellerProperties { get; set; }
     public WalletFraudAnalyticsProperties WalletFraudAnalyticsProperties { get; set; }
     public WalletTransactionServiceProperties WalletTransactionServiceProperties { get; set; }

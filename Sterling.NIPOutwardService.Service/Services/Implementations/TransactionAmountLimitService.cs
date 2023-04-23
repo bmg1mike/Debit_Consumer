@@ -51,7 +51,7 @@ public class TransactionAmountLimitService : ITransactionAmountLimitService
     {
         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetCBNLimitByCustomerClass)}";
-        outboundLog.RequestDetails = $"{customerClass}";
+        outboundLog.RequestDetails = $"customer class: {customerClass}";
 
         CBNTransactionAmountLimit cbnTransactionAmountLimit = new();
         await retryPolicy.ExecuteAsync(async () =>
@@ -60,6 +60,7 @@ public class TransactionAmountLimitService : ITransactionAmountLimitService
         });
 
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.ResponseDetails = JsonConvert.SerializeObject(cbnTransactionAmountLimit);
 
         return cbnTransactionAmountLimit;
     }
@@ -76,6 +77,7 @@ public class TransactionAmountLimitService : ITransactionAmountLimitService
         });
 
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.ResponseDetails = JsonConvert.SerializeObject(eftTransactionAmountLimit);
 
         return eftTransactionAmountLimit;
     }

@@ -214,6 +214,13 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
                     
                     transaction.StatusFlag = 0;
                     await nipOutwardTransactionService.Update(transaction);
+                    updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                    if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                    {
+                        inboundLog.OutboundLogs.Add(updateLog);
+                    }
+
                     result.Message = "Transaction failed";
                     result.ErrorMessage = "Unable to update Session ID for transaction";
                     result.IsSuccess = false;

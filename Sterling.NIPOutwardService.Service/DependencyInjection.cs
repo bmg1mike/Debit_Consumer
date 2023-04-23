@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Sterling.NIPOutwardService.Service.Services.Implementations.ExternalServices;
 
 namespace Sterling.NIPOutwardService.Service;
@@ -20,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IWalletFraudAnalyticsService, WalletFraudAnalyticsService>();
         services.AddScoped<INIPOutwardWalletTransactionRepository, NIPOutwardWalletTransactionRepository>();
         services.AddScoped<IWalletTransactionService, WalletTransactionService>();
+        services.AddSingleton<IMemoryCache, MemoryCache>();
         
 
         services.AddHttpClient<IFraudAnalyticsService, FraudAnalyticsService>()

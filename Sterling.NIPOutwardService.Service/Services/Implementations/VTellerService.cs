@@ -435,13 +435,13 @@ public class VTellerService : IVtellerService
         catch (Exception ex)
         {
             var rawRequest = JsonConvert.SerializeObject(t);
-           // outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-            //    "\r\n" + $@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
-            Log.Error($@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}");
-            vTellerResponse.Respreturnedcode1 = "1x";
+            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
+                "\r\n" + $@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
+            //Log.Error($@"Vteller RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}");
+            //vTellerResponse.Respreturnedcode1 = "1x";
             
         }
-        //this.outboundLogs.Add(outboundLog);
+        this.outboundLogs.Add(outboundLog);
         
         return vTellerResponse;
     }
@@ -500,8 +500,8 @@ public class VTellerService : IVtellerService
         {
             var rawRequest = JsonConvert.SerializeObject(encryptedRequest);
 
-            outboundLog.APICalled = appSettings.VtellerProperties.DebitRequest + appSettings.VtellerProperties.DebitRequest;
-            outboundLog.APIMethod = appSettings.VtellerProperties.DebitRequest + appSettings.VtellerProperties.DebitRequest;
+            outboundLog.APICalled = appSettings.VtellerProperties.BaseUrl + appSettings.VtellerProperties.DebitRequest;
+            outboundLog.APIMethod = appSettings.VtellerProperties.BaseUrl + appSettings.VtellerProperties.DebitRequest;
             outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.RequestDetails = rawRequest;
                 
@@ -513,7 +513,7 @@ public class VTellerService : IVtellerService
             using var httpResponseMessage = await httpClient.PostAsync(appSettings.VtellerProperties.DebitRequest, requestPayload); 
             var rawResponse = httpResponseMessage.Content.ReadAsStringAsync().Result;
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.RequestDetails = rawResponse;
+            outboundLog.ResponseDetails = rawResponse;
             response = JsonConvert.DeserializeObject<EncryptedDto>(rawResponse);
 
         }

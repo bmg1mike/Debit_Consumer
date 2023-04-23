@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Caching.Memory;
+
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
@@ -18,6 +20,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     private readonly IVtellerService vtellerService;
     private readonly INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService;
     private readonly INIPOutwardNameEnquiryService nipOutwardNameEnquiryService;
+    private IMemoryCache cache;
 
     public NIPOutwardDebitProcessorService(INIPOutwardTransactionService nipOutwardTransactionService, 
     IInboundLogService inboundLogService, IOptions<AppSettings> appSettings, IMapper mapper,
@@ -26,7 +29,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     ITransactionAmountLimitService transactionAmountLimitService, IDebitAccountRepository debitAccountRepository,
     IIncomeAccountRepository incomeAccountRepository, IVtellerService vtellerService,
     INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService, 
-    INIPOutwardNameEnquiryService nipOutwardNameEnquiryService)
+    INIPOutwardNameEnquiryService nipOutwardNameEnquiryService, IMemoryCache cache)
     {
         this.nipOutwardTransactionService = nipOutwardTransactionService;
         this.inboundLogService = inboundLogService;
@@ -43,6 +46,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         this.vtellerService = vtellerService;
         this.nipOutwardSendToNIBSSProducerService = nipOutwardSendToNIBSSProducerService;
         this.nipOutwardNameEnquiryService = nipOutwardNameEnquiryService;
+        this.cache = cache;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
         {
@@ -160,6 +164,14 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             {
                 nipOutwardTransaction.StatusFlag = 17;
                 await nipOutwardTransactionService.Update(nipOutwardTransaction);
+
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
                 result.IsSuccess = false;
                 result.Message = "Transaction not allowed";
                 result.ErrorMessage = @$"Customer of class {customerClass} with account {nipOutwardTransaction.DebitAccountNumber} 
@@ -201,9 +213,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             if(debitAccountResult.IsSuccess)
             {
                 await nipOutwardSendToNIBSSProducerService.PublishTransaction(debitAccountResult.Content);
+                outboundLogs.Add(nipOutwardSendToNIBSSProducerService.GetOutboundLog());
             }
 
-            outboundLogs.Add(nipOutwardSendToNIBSSProducerService.GetOutboundLog());
             // await inboundLogService.CreateInboundLog(inboundLog);
             return mapper.Map<FundsTransferResult<string>>(debitAccountResult);
             
@@ -397,6 +409,14 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                             {
                                 transaction.StatusFlag = 11;
                                 recordsUpdated = await nipOutwardTransactionService.Update(transaction);
+                                
+                                var failureUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                                if(!string.IsNullOrEmpty(failureUpdateLog.ExceptionDetails))
+                                {
+                                    outboundLogs.Add(failureUpdateLog);
+                                }
+
                                 if (recordsUpdated > 0)
                                 {
                                     await nipOutwardDebitLookupService.Delete(nipOutwardDebitLookup);
@@ -408,6 +428,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                             transaction.FraudResponse = fraudrsp.responseCode;
                             transaction.FraudScore = fraudrsp.fraudScore;
                             recordsUpdated = await nipOutwardTransactionService.Update(transaction);
+
+                            var successUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                            if(!string.IsNullOrEmpty(successUpdateLog.ExceptionDetails))
+                            {
+                                outboundLogs.Add(successUpdateLog);
+                            }
                             
                         }
 
@@ -487,6 +514,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         return result;
                     }
                     await nipOutwardTransactionService.Update(transaction);
+                    var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                    if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                    {
+                        outboundLogs.Add(updateLog);
+                    }
                 }
                 else{
                     result.IsSuccess = true;
@@ -535,16 +568,23 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     outboundLogs.Add(outboundLog);
                     transaction.StatusFlag = 16;
                     await nipOutwardTransactionService.Update(transaction);
+                    var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                    if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                    {
+                        outboundLogs.Add(updateLog);
+                    }
+                    
                     result.Message = "Transaction not allowed";
                     result.IsSuccess = false;
-                    outboundLog.ResponseDetails = $"Is success: {result.IsSuccess.ToString()}";
+                    outboundLog.ResponseDetails = $"Transaction allowed: {result.IsSuccess.ToString()}";
                     outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                     outboundLogs.Add(outboundLog);
                     return result;
                 }
             }
             result.IsSuccess = true;
-            outboundLog.ResponseDetails = $"Is success: {result.IsSuccess.ToString()}";
+            outboundLog.ResponseDetails = $"Transaction allowed: {result.IsSuccess.ToString()}";
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLogs.Add(outboundLog);
             return result;
@@ -596,6 +636,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     
                     model.StatusFlag = 18;
                     await nipOutwardTransactionService.Update(model);
+                    var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                    if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                    {
+                        outboundLogs.Add(updateLog);
+                    }
+
                     result.Message = "Transaction failed";
                     result.ErrorMessage = "Unable to form the VAT account for ledger code 17201";
                     result.IsSuccess = false;
@@ -613,6 +660,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 
                 model.StatusFlag = 18;
                 await nipOutwardTransactionService.Update(model);
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
                 result.Message = "Transaction failed";
                 result.ErrorMessage = "Error: Unable to compute VAT and Fee for account";
                 result.IsSuccess = false;
@@ -643,6 +697,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         {
             model.StatusFlag = 19;
             await nipOutwardTransactionService.Update(model);
+            var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+            if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+            {
+                outboundLogs.Add(updateLog);
+            }
             
             result.IsSuccess = false;
             result.Message = "Transaction failed";
@@ -681,6 +741,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.FundsTransferResponse = "09x";    
                 transaction.StatusFlag = 23;    
                 await nipOutwardTransactionService.Update(transaction);
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
                 result.Content = transaction;
                 result.Message = "Transaction not allowed: Transaction amount is greater than the maximum amount per transaction";
                 result.ErrorMessage = outboundLog.ResponseDetails;
@@ -701,6 +768,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.FundsTransferResponse = "09x";
                 transaction.StatusFlag = 24;
                 await nipOutwardTransactionService.Update(transaction);
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
 
                 result.Content = transaction;
                 result.Message = "Transaction not allowed. Limit exceeded for today";
@@ -719,6 +792,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.FundsTransferResponse = "13";
                 transaction.StatusFlag = 25;
                 await nipOutwardTransactionService.Update(transaction);
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
                 result.Content = transaction;
                 result.Message = "Transaction not allowed: Transaction amount is greater than the maximum amount per transaction";
                 result.ErrorMessage = outboundLog.ResponseDetails;
@@ -779,6 +859,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         transaction.FundsTransferResponse = "65";
                         transaction.StatusFlag = 28;
                         await nipOutwardTransactionService.Update(transaction);
+                        var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                        if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                        {
+                            outboundLogs.Add(updateLog);
+                        }
+
                         result.Content = transaction;
                         result.Message = "Transaction not allowed. Limit exceeded";
                         result.ErrorMessage = outboundLog.ResponseDetails;
@@ -797,6 +884,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                         transaction.FundsTransferResponse = "65";
                         transaction.StatusFlag = 24;
                         await nipOutwardTransactionService.Update(transaction);
+
+                        var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                        if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                        {
+                            outboundLogs.Add(updateLog);
+                        }
 
                         result.Content = transaction;
                         result.Message = "Transaction not allowed. Limit exceeded for today.";
@@ -821,7 +915,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 //check if the ledger is for savings
                 
                 bool isFound = await transactionDetailsRepository.isLedgerFound(transaction.LedgerCode);
-                outboundLogs.Add(transactionAmountLimitService.GetOutboundLog());
+                outboundLogs.Add(transactionDetailsRepository.GetOutboundLog());
 
                 if (isFound)
                 {
@@ -851,6 +945,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.FundsTransferResponse = "57";
                 transaction.StatusFlag = 29;
                 await nipOutwardTransactionService.Update(transaction);
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
                 result.Content = transaction;
                 result.Message = "Transaction failed";
                 result.ErrorMessage = outboundLog.ResponseDetails;
@@ -872,6 +973,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                     transaction.FundsTransferResponse = "09x";
                     transaction.StatusFlag = 24;
                     await nipOutwardTransactionService.Update(transaction);
+                    var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                    if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                    {
+                        outboundLogs.Add(updateLog);
+                    }
+
                     result.Content = transaction;
                     result.Message = "Transaction not allowed. Limit exceeded for today.";
                     result.ErrorMessage = outboundLog.ResponseDetails;
@@ -889,6 +997,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.FundsTransferResponse = "61";
                 transaction.StatusFlag = 23;
                 await nipOutwardTransactionService.Update(transaction);
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
                 result.Content = transaction;
                 result.Message = "Transaction not allowed: Transaction amount is greater than the maximum amount per transaction";
                 result.ErrorMessage = outboundLog.ResponseDetails;
@@ -1009,6 +1124,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.StatusFlag = 26;
                 transaction.FundsTransferResponse = "1x";
                 await nipOutwardTransactionService.Update(transaction);
+                var systemErrorUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(systemErrorUpdateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(systemErrorUpdateLog);
+                }
 
                 result.IsSuccess = false;
                 result.Message = "Transaction Failed";
@@ -1122,6 +1243,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.StatusFlag = 27;
                 transaction.FundsTransferResponse = Respval;
                 await nipOutwardTransactionService.Update(transaction);
+                var failureUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(failureUpdateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(failureUpdateLog);
+                }
 
                 result.IsSuccess = false;
                 
@@ -1148,6 +1275,13 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             transaction.AppsTransactionType = 1;
             transaction.OutwardTransactionType = 1;
             await nipOutwardTransactionService.Update(transaction);
+            var successUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+            if(!string.IsNullOrEmpty(successUpdateLog.ExceptionDetails))
+            {
+                outboundLogs.Add(successUpdateLog);
+            }
+
             result.Content = transaction;
 
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
@@ -1183,23 +1317,63 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetIncomeAccounts)}";
         try
         {
-            var incomeAccountsDetails = new IncomeAccountsDetails();
-            incomeAccountsDetails.Tss = await incomeAccountRepository.GetCurrentTss();
-            outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+            string Tss; string Tss2; string ExpCode; Fee Fee;
 
-            incomeAccountsDetails.Tss2 = await incomeAccountRepository.getCurrentTss2();
-            outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+            // Look for cache key.
+            if (!cache.TryGetValue(CacheKeys.Tss, out Tss))
+            {
+                // Key not in cache, so get data.
+                Tss = await incomeAccountRepository.GetCurrentTss();
+                outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
 
-            incomeAccountsDetails.ExpCode = await incomeAccountRepository.GetExpcode();
-            outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+                // Save data in cache and set the relative expiration time to one day
+                cache.Set(CacheKeys.Tss, Tss, TimeSpan.FromDays(appSettings.InMemoryCacheDurationInHours));
+            }
 
-            incomeAccountsDetails.Fee = await incomeAccountRepository.GetCurrentIncomeAcct();
-            outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+            // Look for cache key.
+            if (!cache.TryGetValue(CacheKeys.Tss2, out Tss2))
+            {
+                // Key not in cache, so get data.
+                Tss2 = await incomeAccountRepository.getCurrentTss2();
+                outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+                // Save data in cache and set the relative expiration time to one day
+                cache.Set(CacheKeys.Tss2, Tss2, TimeSpan.FromDays(appSettings.InMemoryCacheDurationInHours));
+            }
+
+            // Look for cache key.
+            if (!cache.TryGetValue(CacheKeys.ExpCode, out ExpCode))
+            {
+                // Key not in cache, so get data.
+                ExpCode =  await incomeAccountRepository.GetExpcode();
+                outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+                // Save data in cache and set the relative expiration time to one day
+                cache.Set(CacheKeys.ExpCode, ExpCode, TimeSpan.FromHours(appSettings.InMemoryCacheDurationInHours));
+            }
+
+            // Look for cache key.
+            if (!cache.TryGetValue(CacheKeys.Fee, out Fee))
+            {
+                // Key not in cache, so get data.
+                Fee = await incomeAccountRepository.GetCurrentIncomeAcct();
+                outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+                // Save data in cache and set the relative expiration time to one day
+                cache.Set(CacheKeys.Fee, Fee, TimeSpan.FromHours(appSettings.InMemoryCacheDurationInHours));
+            }
+            
+            var incomeAccountsDetails = new IncomeAccountsDetails
+            {
+                Tss = Tss,
+                Tss2 = Tss2,
+                ExpCode = ExpCode,
+                Fee = Fee
+            };      
 
             result.IsSuccess = true;
             result.Content = incomeAccountsDetails;
             outboundLog.ResponseDetails = $"is success: {result.IsSuccess}";
-            
         }
         catch (System.Exception ex)
         {
@@ -1212,11 +1386,52 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             outboundLogs.Add(outboundLog);
             
         }
-        var incomeAccountRepositoryLog = incomeAccountRepository.GetOutboundLog();
-        outboundLogs.Add(incomeAccountRepositoryLog);
+       
         return result;
-        
     }
+    // public async Task<FundsTransferResult<IncomeAccountsDetails>> GetIncomeAccounts()
+    // {
+    //     FundsTransferResult<IncomeAccountsDetails> result = new FundsTransferResult<IncomeAccountsDetails>();
+    //     OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+    //     result.IsSuccess = false;
+    //     outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+    //     outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetIncomeAccounts)}";
+    //     try
+    //     {
+    //         var incomeAccountsDetails = new IncomeAccountsDetails();
+    //         incomeAccountsDetails.Tss = await incomeAccountRepository.GetCurrentTss();
+    //         outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+    //         incomeAccountsDetails.Tss2 = await incomeAccountRepository.getCurrentTss2();
+    //         outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+    //         incomeAccountsDetails.ExpCode = await incomeAccountRepository.GetExpcode();
+    //         outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+    //         incomeAccountsDetails.Fee = await incomeAccountRepository.GetCurrentIncomeAcct();
+    //         outboundLogs.Add(incomeAccountRepository.GetOutboundLog());
+
+    //         result.IsSuccess = true;
+    //         result.Content = incomeAccountsDetails;
+    //         outboundLog.ResponseDetails = $"is success: {result.IsSuccess}";
+            
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         result.IsSuccess = false;
+    //         result.Message = "Transaction failed";
+    //         result.ErrorMessage = "Internal Server Error";
+    //         outboundLog.ExceptionDetails = $@"Error thrown,
+    //         Exception Details: {ex.Message} {ex.StackTrace}";
+    //         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+    //         outboundLogs.Add(outboundLog);
+            
+    //     }
+    //     var incomeAccountRepositoryLog = incomeAccountRepository.GetOutboundLog();
+    //     outboundLogs.Add(incomeAccountRepositoryLog);
+    //     return result;
+        
+    // }
 
     public async Task<FundsTransferResult<GetDebitAccountDetailsDto>> GetDebitAccountDetails(CreateVTellerTransactionDto vTellerTransactionDto)
     {
