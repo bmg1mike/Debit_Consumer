@@ -1,4 +1,4 @@
-namespace Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos;
+namespace Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.TransactionValidation;
 
 public class TransactionValidationRequestDto 
 {

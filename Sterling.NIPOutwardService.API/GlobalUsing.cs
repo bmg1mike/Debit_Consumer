@@ -11,3 +11,5 @@ global using Sterling.NIPOutwardService.Domain.Entities;
 global using Serilog;
 global using Microsoft.OpenApi.Models;
 global using Microsoft.AspNetCore.Authorization;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.TransactionValidation;

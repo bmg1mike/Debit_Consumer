@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.NameEnquiry;
 
 namespace Sterling.NIPOutwardService.API.Controllers.v1;
 
@@ -29,7 +28,7 @@ public partial class NIPOutwardTransactionController : BaseController
     [Route("TransactionValidation")]
     public async Task<ActionResult> TransactionValidation([FromBody][Required] TransactionValidationRequestDto request)
     {        
-        Result<string> response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccessful(request);
+        Result<TransactionValidationResponseDto> response =  await nipOutwardTransactionService.CheckIfTransactionIsSuccessful(request);
 
         return Ok(response);
     }

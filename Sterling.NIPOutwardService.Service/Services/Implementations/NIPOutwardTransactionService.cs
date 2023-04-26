@@ -1,5 +1,4 @@
 using System.Reflection;
-
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public partial class NIPOutwardTransactionService : INIPOutwardTransactionService
@@ -139,9 +138,9 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    public async Task<Result<string>> CheckIfTransactionIsSuccessful(TransactionValidationRequestDto request)
+    public async Task<Result<TransactionValidationResponseDto>> CheckIfTransactionIsSuccessful(TransactionValidationRequestDto request)
     {
-        var response = new Result<string>();
+        var response = new Result<TransactionValidationResponseDto>();
         try
         {
             var requestTime = DateTime.UtcNow.AddHours(1);
@@ -156,7 +155,6 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             response.SessionID = request.SessionID;
             response.RequestTime = requestTime;
             response.ResponseTime = DateTime.UtcNow.AddHours(1);
-            response.Content = string.Empty;
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = response.ResponseTime;
 
@@ -171,7 +169,7 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         {
             response.IsSuccess = false;
             response.ResponseTime = DateTime.UtcNow.AddHours(1);
-            response.Content = string.Empty;
+            response.Content = null;
             response.Message = "Transaction failed";
             response.ErrorMessage = "Internal server error";
             Log.Information(ex, $"Error thrown, raw request: {JsonConvert.SerializeObject(request)} ");
@@ -180,9 +178,9 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return response;
     }
 
-    public async Task<Result<string>> ProcessCheck(TransactionValidationRequestDto request)
+    public async Task<Result<TransactionValidationResponseDto>> ProcessCheck(TransactionValidationRequestDto request)
     {
-        Result<string> result = new Result<string>();
+        Result<TransactionValidationResponseDto> result = new Result<TransactionValidationResponseDto>();
         result.IsSuccess = false;
         try
         {
@@ -204,15 +202,50 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
                 result.Message = "Transaction not found";
                 result.ErrorMessage = "Transaction not found";
                 result.IsSuccess = false;
+                return result;
             }
+            
+            result.Message = "Transaction found";
+            result.IsSuccess = true;
+            
+            // If a transaction check failed
+            if(transaction.DebitResponse == 0 && transaction.FundsTransferResponse == null && transaction.NIBSSResponse == null && transaction.KafkaStatus != "K1")
+            {
+                result.Content = new TransactionValidationResponseDto { Status = "F"};
+            }
+            // If transaction successful
             else if(transaction.NIBSSResponse == "00")
             {
-                result.Message = "Transaction is successful";
-                result.IsSuccess = true;
+                result.Content = new TransactionValidationResponseDto { Status = "S"};
+            }
+            // If Vteller(Debit service) returned error response
+            else if(transaction.StatusFlag == 27 && transaction.DebitResponse == 2)
+            {
+                result.Content = new TransactionValidationResponseDto { Status = "F"};
+            }
+            // If Debit requery service returned 
+            else if(!string.IsNullOrWhiteSpace(transaction.DebitRequeryStatus) && transaction.DebitRequeryStatus.Trim() != "PROCESSED")
+            {
+                result.Content = new TransactionValidationResponseDto { Status = "F"};
+            }
+            // If failed fraud check
+            else if(transaction.StatusFlag == 11)
+            {
+                result.Content = new TransactionValidationResponseDto { Status = "F"};
+            }
+            // If failure from NIBSS
+            else if(transaction.StatusFlag == 8)
+            {
+                result.Content = new TransactionValidationResponseDto { Status = "F"};
+            }
+            else if(transaction.KafkaStatus == "K2" && transaction.NIBSSResponse == null)
+            {
+                result.Content = new TransactionValidationResponseDto { Status = "P"};
             }
             else 
             {
-                result.Message = "Transaction processing";
+                result.Message = "Transaction status unknown";
+                result.ErrorMessage = "Transaction status unknown";
                 result.IsSuccess = false;
             }
             
@@ -228,9 +261,9 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         return result;
     }
 
-    public Result<string> ValidateTransactionValidationRequestDto(TransactionValidationRequestDto request)
+    public Result<TransactionValidationResponseDto> ValidateTransactionValidationRequestDto(TransactionValidationRequestDto request)
     {
-        Result<string> result = new Result<string>();
+        Result<TransactionValidationResponseDto> result = new Result<TransactionValidationResponseDto>();
         result.IsSuccess = false;
 
         TransactionValidationRequestDtoValidator validator = new TransactionValidationRequestDtoValidator();
