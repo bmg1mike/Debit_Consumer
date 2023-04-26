@@ -258,8 +258,11 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             inboundLog.ExceptionDetails = $@"PaymentReference {request.SessionID} Exception Details: {ex.Message} {ex.StackTrace}";
             
         }
+        
         return result;
     }
+
+    
 
     public Result<TransactionValidationResponseDto> ValidateTransactionValidationRequestDto(TransactionValidationRequestDto request)
     {
