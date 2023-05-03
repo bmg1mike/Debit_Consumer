@@ -30,7 +30,12 @@ public class ConsumerBackgroundWorkerService : BackgroundService
 
                 for (int i = 0; i < kafkaDebitConsumerConfig.NumberOfTransactionToConsume; i++)
                 {
-                    nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
+                    var consumedResult = consumer.Consume(TimeSpan.Zero);
+                    if(consumedResult == null)
+                        break;
+                    else
+                        nipOutwardTransactionResults.Add(consumedResult);
+                    //nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
                 }
 
                 logger.Information($"starting call to process {kafkaDebitConsumerConfig.NumberOfTransactionToConsume} transactions in parallel");
