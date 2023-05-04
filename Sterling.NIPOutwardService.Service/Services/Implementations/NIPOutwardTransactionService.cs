@@ -65,8 +65,11 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
                 model.WalletAccountNumber = request.DebitAccountNumber.Substring(1);
             }
 
-            await repository.Create(model);
-
+            await retryPolicy.ExecuteAsync(async () =>
+            {
+                await repository.Create(model);
+            });
+            
             result.IsSuccess = true;
             result.Message = "Success";
             result.Content = model;
