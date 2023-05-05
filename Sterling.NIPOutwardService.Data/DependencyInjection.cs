@@ -13,7 +13,11 @@ public static class DependencyInjection
 
         // SQL Server dependencies
         services.AddDbContext<SqlDbContext>(options => 
-        options.UseSqlServer(configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value));
+        options.UseSqlServer(configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value,
+        builder =>
+        {
+            builder.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        }));
 
         services.AddScoped<IInboundLogRepository, InboundLogRepository>();
         services.AddScoped<INIPOutwardTransactionRepository, NIPOutwardTransactionRepository>();
