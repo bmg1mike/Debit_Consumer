@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.ImalTransaction;
 
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
@@ -20,6 +21,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     private readonly IVtellerService vtellerService;
     private readonly INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService;
     private readonly INIPOutwardNameEnquiryService nipOutwardNameEnquiryService;
+    private readonly IImalTransactionService imalTransactionService;
     private IMemoryCache cache;
 
     public NIPOutwardDebitProcessorService(INIPOutwardTransactionService nipOutwardTransactionService, 
@@ -29,7 +31,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     ITransactionAmountLimitService transactionAmountLimitService, IDebitAccountRepository debitAccountRepository,
     IIncomeAccountRepository incomeAccountRepository, IVtellerService vtellerService,
     INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService, 
-    INIPOutwardNameEnquiryService nipOutwardNameEnquiryService, IMemoryCache cache)
+    INIPOutwardNameEnquiryService nipOutwardNameEnquiryService, IMemoryCache cache, IImalTransactionService imalTransactionService)
     {
         this.nipOutwardTransactionService = nipOutwardTransactionService;
         this.inboundLogService = inboundLogService;
@@ -47,6 +49,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         this.nipOutwardSendToNIBSSProducerService = nipOutwardSendToNIBSSProducerService;
         this.nipOutwardNameEnquiryService = nipOutwardNameEnquiryService;
         this.cache = cache;
+        this.imalTransactionService = imalTransactionService;
         this.retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(new[]
         {
@@ -71,9 +74,17 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
     public async Task<FundsTransferResult<string>> ProcessTransaction(NIPOutwardTransaction nipOutwardTransaction)
     {
+
         var response = new FundsTransferResult<string>();
-        
-        response = await DebitAccount(nipOutwardTransaction);
+
+        if(nipOutwardTransaction.IsImalTransaction)
+        {
+            response = await DebitImalAccount(nipOutwardTransaction);
+        }
+        else
+        {
+            response = await DebitAccount(nipOutwardTransaction);
+        }
         response.Content = string.Empty;
 
         if(!response.IsSuccess && string.IsNullOrWhiteSpace(response.ErrorMessage))
@@ -253,6 +264,134 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     //do debit fn and update based on vteller response
     }
 
+    public async Task<FundsTransferResult<string>> DebitImalAccount(NIPOutwardTransaction nipOutwardTransaction)
+    {
+        FundsTransferResult<string> result = new FundsTransferResult<string>();
+        result.IsSuccess = false;
+        OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.DebitImalAccount)}";
+        try
+        {
+            var checkLookupResult = await nipOutwardDebitLookupService.FindOrCreate(nipOutwardTransaction.ID);
+            outboundLogs.Add(nipOutwardDebitLookupService.GetOutboundLog());
+
+            if(!checkLookupResult.IsSuccess)
+            {
+                return mapper.Map<FundsTransferResult<string>>(checkLookupResult);
+            }
+
+            var generateSessionIdResult = await GenerateNameEnquirySessionId(nipOutwardTransaction);
+            
+            if (!generateSessionIdResult.IsSuccess)
+            {
+                return mapper.Map<FundsTransferResult<string>>(generateSessionIdResult);
+            }
+
+            nipOutwardTransaction = generateSessionIdResult.Content;
+
+           
+            var getDebitAccountDetailsResult = await GetImalDebitAccountDetails(nipOutwardTransaction.DebitAccountNumber);
+
+            if (!getDebitAccountDetailsResult.IsSuccess)
+            {
+                return mapper.Map<FundsTransferResult<string>>(getDebitAccountDetailsResult);
+            }
+
+            nipOutwardTransaction.OriginatorEmail = getDebitAccountDetailsResult.Content.DebitAccountDetails.Email;
+            nipOutwardTransaction.LedgerCode = getDebitAccountDetailsResult.Content.DebitAccountDetails.T24_LED_CODE;
+            nipOutwardTransaction.BranchCode = getDebitAccountDetailsResult.Content.DebitAccountDetails.T24_BRA_CODE;
+
+            var appIDCheckResult = await AppIDCheck(nipOutwardTransaction);
+
+            if (!appIDCheckResult.IsSuccess)
+            {
+                return mapper.Map<FundsTransferResult<string>>(appIDCheckResult);
+            }
+
+            var customerStatusCode = getDebitAccountDetailsResult.Content.DebitAccountDetails.CustomerStatusCode;
+            var CheckIfDateIsHolidayResult = await CheckIfDateIsHoliday(nipOutwardTransaction, customerStatusCode);
+
+            if (!CheckIfDateIsHolidayResult.IsSuccess)
+            {
+                return mapper.Map<FundsTransferResult<string>>(CheckIfDateIsHolidayResult);
+            }
+
+            var HasConcessionPerTransPerday = false;
+            var concessionTransactionAmountLimit = await transactionAmountLimitService.GetConcessionLimitByDebitAccount(nipOutwardTransaction.DebitAccountNumber);
+            
+            outboundLogs.Add(transactionAmountLimitService.GetOutboundLog());
+            if (concessionTransactionAmountLimit != null)
+            {
+                HasConcessionPerTransPerday = true;
+            }
+
+            var customerClass = getDebitAccountDetailsResult.Content.CustomerClass;
+
+            if (customerClass == 1 && nipOutwardTransaction.Amount > 1000000 && !HasConcessionPerTransPerday)
+            {
+                nipOutwardTransaction.StatusFlag = 17;
+                await nipOutwardTransactionService.Update(nipOutwardTransaction);
+
+                var updateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                if(!string.IsNullOrEmpty(updateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(updateLog);
+                }
+
+                result.IsSuccess = false;
+                result.Message = "Transaction not allowed";
+                result.ErrorMessage = @$"Customer of class {customerClass} with account {nipOutwardTransaction.DebitAccountNumber} 
+                does not have concession and the transaction amount {nipOutwardTransaction.Amount} 
+                is higher than the maximum amount per transaction";
+                return result;
+            }
+
+            var usableBalance = getDebitAccountDetailsResult.Content.DebitAccountDetails.UsableBalance;
+            var totalTransactionAmount = nipOutwardTransaction.Amount;
+
+            if(totalTransactionAmount >  usableBalance)
+            {
+                result.IsSuccess = false;
+                result.Message = "Insufficient balance";
+                return result;
+            }
+
+            var isLedgerNotAllowedResult = await transactionDetailsRepository.isLedgerNotAllowed(nipOutwardTransaction.LedgerCode);
+            
+            outboundLogs.Add(transactionDetailsRepository.GetOutboundLog());
+            if(isLedgerNotAllowedResult) 
+            {
+                result.IsSuccess = false;
+                result.Message = "Transaction not allowed";
+                return result;
+            }
+
+            var debitAccountResult = await DebitImalAccount(nipOutwardTransaction, 
+            concessionTransactionAmountLimit, CheckIfDateIsHolidayResult.Content, customerStatusCode, customerClass);
+            
+            if(debitAccountResult.IsSuccess)
+            {
+                await nipOutwardSendToNIBSSProducerService.PublishTransaction(debitAccountResult.Content);
+                outboundLogs.Add(nipOutwardSendToNIBSSProducerService.GetOutboundLog());
+            }
+
+            return mapper.Map<FundsTransferResult<string>>(debitAccountResult);
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {nipOutwardTransaction} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLogs.Add(outboundLog);
+            return result;
+        }
+        
+    }
+
     public async Task<FundsTransferResult<NIPOutwardTransaction>> DebitAccount(CreateVTellerTransactionDto vTellerTransactionDto,
     NIPOutwardTransaction nipOutwardTransaction, ConcessionTransactionAmountLimit? concessionTransactionAmountLimit,
     bool holidayFound, int customerStatusCode, int customerClass )
@@ -301,6 +440,57 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.ErrorMessage = "Internal Server Error";
             var request = "Transaction object:" + JsonConvert.SerializeObject(vTellerTransactionDto) + 
             $@"  holidayFound: {holidayFound}, customerStatusCode: {customerStatusCode}, cus_class: {customerClass}";
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLogs.Add(outboundLog);
+            return result;
+            
+        }
+    }
+
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> DebitImalAccount(NIPOutwardTransaction nipOutwardTransaction, 
+    ConcessionTransactionAmountLimit? concessionTransactionAmountLimit,
+    bool holidayFound, int customerStatusCode, int customerClass)
+    {
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
+        OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.DebitImalAccount)}";
+        result.IsSuccess = false;
+        try
+        {
+            if(concessionTransactionAmountLimit != null)
+            {
+                
+                var concessionChecksResult = await DoChecksBasedOnConcession(nipOutwardTransaction,  
+                concessionTransactionAmountLimit);
+
+                if(!concessionChecksResult.IsSuccess)
+                {
+                    return concessionChecksResult;
+                }
+
+                return await CallImalToDebitAccount(nipOutwardTransaction);
+            }
+            else
+            {
+                var cbnOrEftChecksResult = await DoChecksBasedOnCBNorEFTLimit(nipOutwardTransaction, holidayFound, 
+                 customerStatusCode, customerClass);
+
+                if(!cbnOrEftChecksResult.IsSuccess)
+                {
+                    return cbnOrEftChecksResult;
+                }
+
+                return await CallImalToDebitAccount(nipOutwardTransaction);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
+            var request = $@"  holidayFound: {holidayFound}, customerStatusCode: {customerStatusCode}, cus_class: {customerClass}";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLogs.Add(outboundLog);
@@ -1079,8 +1269,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             //log.Info("Finished debiting for transaction with RefId " + transaction.Refid + " and account number " + transaction.nuban +" and response from Vteller is " + acs.Respreturnedcode1);
             //g.updateVtellerRequestResponseTime(transaction.Refid, vtellerRequestTime, vtellerResponseTime);
             
-            model.VtellerRequestTime = vtellerRequestTime;
-            model.VtellerResponseTime = vtellerResponseTime;
+            model.DebitServiceRequestTime = vtellerRequestTime;
+            model.DebitServiceResponseTime = vtellerResponseTime;
 
             return await UpdateVTellerResponse(model, vTellerResponse);
 
@@ -1096,6 +1286,60 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.ErrorMessage = "Internal Server Error";
             var request = "Transaction object:" + JsonConvert.SerializeObject(createVTellerTransactionDto) + 
             $@"  branch code: {branchCode}";
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLogs.Add(outboundLog);
+            return result;
+            
+        }
+        
+    }
+
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> CallImalToDebitAccount(NIPOutwardTransaction model)
+    {
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
+        OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
+        result.IsSuccess = false;
+        try
+        {        
+    
+            var imalTransferRequest = new ImalTransactionRequestDto 
+            {
+                destinationBankCode = model.BeneficiaryBankCode,
+                channelCode = model.ChannelCode.ToString(),
+                customerShowName = model.OriginatorName,
+                paymentReference = model.PaymentReference,
+                fromAccount = model.DebitAccountNumber,
+                toAccount = model.CreditAccountNumber,
+                amount = model.Amount.ToString(),
+                referenceCode = model.SessionID,
+                beneficiaryName = model.CreditAccountName,
+                nesid = model.NameEnquirySessionID,
+                nersp = model.NameEnquiryResponse,
+                beneBVN = model.BeneficiaryBVN,
+                beneKycLevel = model.BeneficiaryKYCLevel,
+            };
+            #region DoDebitCredit
+            
+            DateTime vtellerRequestTime = DateTime.UtcNow.AddHours(1);
+            var imalResponse = await imalTransactionService.NipFundsTransfer(imalTransferRequest);
+            DateTime vtellerResponseTime = DateTime.UtcNow.AddHours(1);
+
+            outboundLogs.Add(imalTransactionService.GetOutboundLog());
+            
+            model.DebitServiceRequestTime = vtellerRequestTime;
+            model.DebitServiceResponseTime = vtellerResponseTime;
+
+            return await UpdateImalResponse(model, imalResponse);
+
+            #endregion
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
+            var request = "Transaction object:" + JsonConvert.SerializeObject(model);
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLogs.Add(outboundLog);
@@ -1308,6 +1552,117 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
          
     }
 
+    public async Task<FundsTransferResult<NIPOutwardTransaction>> UpdateImalResponse(NIPOutwardTransaction transaction, 
+    ImalTransactionResponseDto? response)
+    {
+        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
+        OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.UpdateImalResponse)}";
+        result.IsSuccess = false;
+        try
+        {
+            if (response == null)
+            {
+            
+                //log.Info("The Response from Banks is " + response.Respreturnedcode1 + "  and hence, vTeller logs it as 3 For SessionID " + transaction.SessionID + " T24 msg ==> " + response.error_text);
+                transaction.DebitResponse = 3;
+                transaction.LastUpdate = DateTime.UtcNow.AddHours(1);
+                transaction.StatusFlag = 26;
+                transaction.FundsTransferResponse = "1x";
+                await nipOutwardTransactionService.Update(transaction);
+                var systemErrorUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(systemErrorUpdateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(systemErrorUpdateLog);
+                }
+
+                result.IsSuccess = false;
+                result.Message = "Transaction Failed";
+                result.ErrorMessage = "Internal server error";
+                
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                outboundLog.ResponseDetails = $"Internal server error";
+                outboundLogs.Add(outboundLog);
+
+                return result;
+            }
+
+            if(response.errorCode == "00" && response.responseCode == "00" && response.originalResponseCode == "00")
+            {                 
+
+                result.IsSuccess = true;
+                result.Message = "Customer has been debited successfully";
+
+                transaction.DebitResponse = 1;
+                transaction.StatusFlag = 9;
+                transaction.KafkaStatus = "K2";
+                transaction.AppsTransactionType = 1;
+                transaction.OutwardTransactionType = 1;
+                await nipOutwardTransactionService.Update(transaction);
+                var successUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+                
+                if(!string.IsNullOrEmpty(successUpdateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(successUpdateLog);
+                }
+
+                result.Content = transaction;
+
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                outboundLog.ResponseDetails = $"Customer has been debited successfully";
+                outboundLogs.Add(outboundLog);
+
+            }
+            else
+            {
+               
+                result.Message = "Transaction Failed ";
+
+                result.ErrorMessage = response.errorCode;
+                transaction.DebitResponse = 2;
+                transaction.LastUpdate = DateTime.UtcNow.AddHours(1);
+                transaction.StatusFlag = 27;
+                transaction.FundsTransferResponse = response.originalResponseCode;
+                await nipOutwardTransactionService.Update(transaction);
+                var failureUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+            
+                if(!string.IsNullOrEmpty(failureUpdateLog.ExceptionDetails))
+                {
+                    outboundLogs.Add(failureUpdateLog);
+                }
+
+                result.IsSuccess = false;
+                
+
+                outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+                outboundLog.ResponseDetails = $"Transaction Failed: {response.errorCode}";
+                outboundLogs.Add(outboundLog);
+
+                return result;
+            }
+
+            return result;
+
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
+            result.Content = transaction;
+            var request = "Transaction object:" + JsonConvert.SerializeObject(transaction) + 
+            " vTellerResponse: " + JsonConvert.SerializeObject(transaction) +
+            $@"  branch code: {response}";
+            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
+            Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLogs.Add(outboundLog);
+            return result;
+        }
+         
+    }
+
     public async Task<FundsTransferResult<IncomeAccountsDetails>> GetIncomeAccounts()
     {
         FundsTransferResult<IncomeAccountsDetails> result = new FundsTransferResult<IncomeAccountsDetails>();
@@ -1482,6 +1837,69 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         {
             result.IsSuccess = false;
             var rawRequest = "Request object:" + JsonConvert.SerializeObject(vTellerTransactionDto); 
+            outboundLog.ExceptionDetails = $@"Error thrown, Raw Request: {rawRequest}
+            Exception Details: {ex.Message} {ex.StackTrace}";
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            outboundLogs.Add(outboundLog);
+            result.Message = "Transaction failed";
+            result.ErrorMessage = "Internal Server Error";
+            return result;
+        }
+    }
+
+    public async Task<FundsTransferResult<GetDebitAccountDetailsDto>> GetImalDebitAccountDetails(string debitAccountNumber)
+    {
+        FundsTransferResult<GetDebitAccountDetailsDto> result = new FundsTransferResult<GetDebitAccountDetailsDto>();
+        OutboundLog outboundLog = new OutboundLog  { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
+        outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+        outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetImalDebitAccountDetails)}";
+        
+        result.IsSuccess = false;
+        try
+        {
+            result.Content = new GetDebitAccountDetailsDto();
+            var accountDetails = await imalTransactionService.GetAccountDetailsByNuban(debitAccountNumber);
+
+            if (accountDetails ==  null)
+            {
+                outboundLogs.Add(imalTransactionService.GetOutboundLog());
+                result.IsSuccess = false;
+                result.Message = "Failed to fetch Imal account details";
+                return result;
+            }
+            
+            int customerClass = 0;
+
+            //if (cusclassval == "Individual Customer")
+            if (accountDetails.GetAccounts.CUST_TYPE.ToUpper().Trim() == "INDIVIDUAL")
+            {
+                customerClass = 1;
+            }
+            else
+            {
+                customerClass = 2;
+            }
+
+            //
+            var debitAccountDetails = new DebitAccountDetails();
+            debitAccountDetails.T24_LED_CODE = accountDetails.GetAccounts.GL_CODE.ToString();
+            debitAccountDetails.UsableBalance = Convert.ToDecimal(accountDetails.GetAccounts.Aval_Balance);
+            debitAccountDetails.Email = accountDetails.GetAccounts.EMAIL;
+            debitAccountDetails.T24_BRA_CODE = accountDetails.GetAccounts.BRANCH_CODE;
+            //
+
+            result.Content.CustomerClass = customerClass;
+            result.Content.DebitAccountDetails = debitAccountDetails;
+            result.IsSuccess = true;
+            outboundLog.RequestDetails = "Successfully fetched imal account details";
+            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
+            outboundLogs.Add(outboundLog);
+            return result;
+        }
+        catch (System.Exception ex)
+        {
+            result.IsSuccess = false;
+            var rawRequest = debitAccountNumber; 
             outboundLog.ExceptionDetails = $@"Error thrown, Raw Request: {rawRequest}
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);

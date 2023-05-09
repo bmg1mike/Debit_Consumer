@@ -31,6 +31,7 @@ public class AppSettings
     public WalletFraudAnalyticsProperties WalletFraudAnalyticsProperties { get; set; }
     public WalletTransactionServiceProperties WalletTransactionServiceProperties { get; set; }
     public NibssNipServiceProperties NibbsNipServiceProperties { get; set; }
+    public ImalServiceProperties ImalServiceProperties { get; set; }
 }
 
 public class VtellerProperties 
@@ -72,4 +73,11 @@ public class NibssNipServiceProperties
     public string NIBSSPublicKeyPath { get; set; }
     public string NIBSSPrivateKeyPath { get; set; }
     public string NIBSSPrivateKeyPassword { get; set; }
+}
+
+public class ImalServiceProperties 
+{
+    public string BaseUrl { get; set; }
+    public string TransferRequest { get; set; }
+    public string GetAccountDetailsByNubanRequest { get; set; }
 }

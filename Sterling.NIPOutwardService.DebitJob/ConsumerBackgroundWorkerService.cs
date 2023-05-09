@@ -38,7 +38,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                     //nipOutwardTransactionResults.Add(consumer.Consume(stoppingToken));
                 }
 
-                logger.Information($"starting call to process {kafkaDebitConsumerConfig.NumberOfTransactionToConsume} transactions in parallel");
+                logger.Information($"starting call to process {nipOutwardTransactionResults.Count} transactions in parallel");
 
                 ParallelLoopResult parallelLoopResult = Parallel.ForEach(nipOutwardTransactionResults, transactionResult => 
                 {
@@ -70,7 +70,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
 
                 if (parallelLoopResult.IsCompleted)
                 {
-                    logger.Information($"call to process {kafkaDebitConsumerConfig.NumberOfTransactionToConsume} transactions in parallel ended");
+                    logger.Information($"call to process {nipOutwardTransactionResults.Count} transactions in parallel ended");
                     continue;
                 }
             }

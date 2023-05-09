@@ -46,8 +46,8 @@ public class NIPOutwardTransaction
     public string OriginatorKYCLevel { get; set; }
     public string TransactionLocation { get; set; }
     public int AppId { get; set; }
-    public DateTime? VtellerRequestTime { get; set; }
-    public DateTime? VtellerResponseTime { get; set; }
+    public DateTime? DebitServiceRequestTime { get; set; }
+    public DateTime? DebitServiceResponseTime { get; set; }
     public string KafkaStatus { get; set; }
     public int? PriorityLevel { get; set; }
     public string NIBSSResponse { get; set; }
@@ -55,5 +55,6 @@ public class NIPOutwardTransaction
     public int? AppsTransactionType { get; set; }
     public bool IsWalletTransaction { get; set; }
     public string WalletAccountNumber { get; set; }
+    public bool IsImalTransaction { get; set; }
 }
 

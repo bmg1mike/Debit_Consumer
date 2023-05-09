@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IWalletFraudAnalyticsService, WalletFraudAnalyticsService>();
         services.AddScoped<INIPOutwardWalletTransactionRepository, NIPOutwardWalletTransactionRepository>();
         services.AddScoped<IWalletTransactionService, WalletTransactionService>();
+        services.AddScoped<IImalTransactionService, ImalTransactionService>();
         services.AddSingleton<IMemoryCache, MemoryCache>();
         
 

@@ -107,5 +107,6 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         .NotEmpty()
         .LessThan(255)
         .GreaterThan(0);
+        
     }
 }

@@ -1,6 +1,9 @@
+using System.ComponentModel;
+using System.Runtime.Serialization;
 using Sterling.NIPOutwardService.Domain.Entities;
 
 namespace Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos;
+
 
 [AutoMap(typeof(NIPOutwardTransaction))]
 public class CreateNIPOutwardTransactionDto 
@@ -29,5 +32,6 @@ public class CreateNIPOutwardTransactionDto
     public int AppId { get; set; }
     public int PriorityLevel { get; set; }
     public bool IsWalletTransaction { get; set; }
+    public bool IsImalTransaction { get; set; }
     
 }
