@@ -32,7 +32,7 @@ public class WalletFraudAnalyticsService:IWalletFraudAnalyticsService
             .PostAsync(appSettings.WalletFraudAnalyticsProperties.GetScoreRequest, requestPayload); 
             var response = httpResponseMessage.Content.ReadAsStringAsync().Result;
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.RequestDetails = response;
+            outboundLog.ResponseDetails = response;
             return JsonConvert.DeserializeObject<WalletFraudAnalyticsResponseDto>(response);
             
         }

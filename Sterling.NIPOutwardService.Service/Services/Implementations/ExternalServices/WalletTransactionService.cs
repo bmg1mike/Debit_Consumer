@@ -49,6 +49,8 @@ public class WalletTransactionService:IWalletTransactionService
 
             var decryptedPayload = encryption.DecryptAes(response, 
             appSettings.WalletTransactionServiceProperties.SecretKey, appSettings.WalletTransactionServiceProperties.IV);
+
+            outboundLog.ResponseDetails = outboundLog.ResponseDetails + $" Decrypted payload: {decryptedPayload}";
             
             return JsonConvert.DeserializeObject<WalletToWalletResponseDto>(decryptedPayload);
 

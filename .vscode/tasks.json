@@ -39,23 +39,6 @@
         },
         {
             "type": "docker-build",
-            "label": "docker-build: debug",
-            "dependsOn": [
-                "build"
-            ],
-            "dockerBuild": {
-                "tag": "sterlingnipoutwardservice:dev",
-                "target": "base",
-                "dockerfile": "${workspaceFolder}/Sterling.NIPOutwardService.API/Dockerfile",
-                "context": "${workspaceFolder}",
-                "pull": true
-            },
-            "netCore": {
-                "appProject": "${workspaceFolder}/Sterling.NIPOutwardService.API/Sterling.NIPOutwardService.API.csproj"
-            }
-        },
-        {
-            "type": "docker-build",
             "label": "docker-build: release",
             "dependsOn": [
                 "build"

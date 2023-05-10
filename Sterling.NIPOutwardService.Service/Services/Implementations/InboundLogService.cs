@@ -19,20 +19,21 @@ public partial class InboundLogService : IInboundLogService
         result.IsSuccess = false;
         try
         {
-           var response = await inboundLogRepository.CreateInboundLog(inboundLog);
-           result.Content = response;  
-           if (response == "")
-           {
-             result.IsSuccess = false;
-             result.ErrorMessage = "InboundLog not created";
-             result.Message = "InboundLog not created";
-           }
-           else
-           {
-             result.IsSuccess = true;
-             result.ErrorMessage = "";
-             result.Message = $"InboundLog with Id {response} Created Successfully !";
-           }
+            inboundLog.LogDate = DateTime.UtcNow.AddHours(1);
+            var response = await inboundLogRepository.CreateInboundLog(inboundLog);
+            result.Content = response;  
+            if (response == "")
+            {
+                result.IsSuccess = false;
+                result.ErrorMessage = "InboundLog not created";
+                result.Message = "InboundLog not created";
+            }
+            else
+            {
+                result.IsSuccess = true;
+                result.ErrorMessage = "";
+                result.Message = $"InboundLog with Id {response} Created Successfully !";
+            }
         }
         catch(Exception ex)
         {   

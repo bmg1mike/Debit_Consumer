@@ -35,7 +35,7 @@ public class ImalTransactionService:IImalTransactionService
             .PostAsync(appSettings.ImalServiceProperties.TransferRequest, requestPayload); 
             var response = httpResponseMessage.Content.ReadAsStringAsync().Result;
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.RequestDetails = response;
+            outboundLog.ResponseDetails = response;
             return JsonConvert.DeserializeObject<ImalTransactionResponseDto>(response);
             
         }
@@ -55,7 +55,7 @@ public class ImalTransactionService:IImalTransactionService
         try
         {
             outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.NipFundsTransfer)}";
+            outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetAccountDetailsByNuban)}";
             outboundLog.RequestDetails = nuban;
 
             var request = appSettings.ImalServiceProperties.GetAccountDetailsByNubanRequest + nuban;
@@ -66,7 +66,7 @@ public class ImalTransactionService:IImalTransactionService
             var response = await httpResponseMessage.Content.ReadAsStringAsync();
 
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.RequestDetails = response;
+            outboundLog.ResponseDetails = response;
 
             return JsonConvert.DeserializeObject<ImalGetAccountDetailsResponse>(response);
         }

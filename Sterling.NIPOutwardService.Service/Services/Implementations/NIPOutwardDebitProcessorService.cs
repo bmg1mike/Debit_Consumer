@@ -1312,6 +1312,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 fromAccount = model.DebitAccountNumber,
                 toAccount = model.CreditAccountNumber,
                 amount = model.Amount.ToString(),
+                principalIdentifier = utilityHelper.GenerateRandomNumber(16),
                 referenceCode = model.SessionID,
                 beneficiaryName = model.CreditAccountName,
                 nesid = model.NameEnquirySessionID,
@@ -1589,7 +1590,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 return result;
             }
 
-            if(response.errorCode == "00" && response.responseCode == "00" && response.originalResponseCode == "00")
+            if(response.responseCode == "00")
             {                 
 
                 result.IsSuccess = true;
@@ -1624,7 +1625,8 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 transaction.DebitResponse = 2;
                 transaction.LastUpdate = DateTime.UtcNow.AddHours(1);
                 transaction.StatusFlag = 27;
-                transaction.FundsTransferResponse = response.originalResponseCode;
+                transaction.FundsTransferResponse = response.responseCode;
+                
                 await nipOutwardTransactionService.Update(transaction);
                 var failureUpdateLog = nipOutwardTransactionService.GetOutboundLog();
             
@@ -1860,24 +1862,31 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.Content = new GetDebitAccountDetailsDto();
             var accountDetails = await imalTransactionService.GetAccountDetailsByNuban(debitAccountNumber);
 
-            if (accountDetails ==  null)
+            outboundLogs.Add(imalTransactionService.GetOutboundLog());
+
+            if (accountDetails ==  null || accountDetails.Message.Trim().ToUpper() != 
+            appSettings.ImalServiceProperties.GetAccountSuccessMessage.ToUpper().Trim())
             {
-                outboundLogs.Add(imalTransactionService.GetOutboundLog());
                 result.IsSuccess = false;
-                result.Message = "Failed to fetch Imal account details";
+                result.Message = "Transaction failed";
+                result.ErrorMessage = "Failed to fetch Imal account details";
                 return result;
             }
             
             int customerClass = 0;
 
+            int customerStatusCode = 0;
+
             //if (cusclassval == "Individual Customer")
             if (accountDetails.GetAccounts.CUST_TYPE.ToUpper().Trim() == "INDIVIDUAL")
             {
                 customerClass = 1;
+                customerStatusCode = 1;
             }
             else
             {
                 customerClass = 2;
+                customerStatusCode = 2;
             }
 
             //
@@ -1886,8 +1895,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             debitAccountDetails.UsableBalance = Convert.ToDecimal(accountDetails.GetAccounts.Aval_Balance);
             debitAccountDetails.Email = accountDetails.GetAccounts.EMAIL;
             debitAccountDetails.T24_BRA_CODE = accountDetails.GetAccounts.BRANCH_CODE;
+            debitAccountDetails.CustomerStatusCode = customerStatusCode;
             //
-
+            
             result.Content.CustomerClass = customerClass;
             result.Content.DebitAccountDetails = debitAccountDetails;
             result.IsSuccess = true;

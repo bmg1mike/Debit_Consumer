@@ -80,4 +80,5 @@ public class ImalServiceProperties
     public string BaseUrl { get; set; }
     public string TransferRequest { get; set; }
     public string GetAccountDetailsByNubanRequest { get; set; }
+    public string GetAccountSuccessMessage { get; set; }
 }
