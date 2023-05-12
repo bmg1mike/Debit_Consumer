@@ -31,7 +31,7 @@ public class AppSettings
     public WalletFraudAnalyticsProperties WalletFraudAnalyticsProperties { get; set; }
     public WalletTransactionServiceProperties WalletTransactionServiceProperties { get; set; }
     public NibssNipServiceProperties NibbsNipServiceProperties { get; set; }
-    public ImalServiceProperties ImalServiceProperties { get; set; }
+    public ImalProperties ImalProperties { get; set; }
 }
 
 public class VtellerProperties 
@@ -75,10 +75,30 @@ public class NibssNipServiceProperties
     public string NIBSSPrivateKeyPassword { get; set; }
 }
 
-public class ImalServiceProperties 
+public class ImalProperties 
+{
+    public ImalTransactionServiceProperties ImalTransactionServiceProperties { get; set; }
+    public ImalInquiryServiceProperties ImalInquiryServiceProperties { get; set; }
+}
+
+public class ImalTransactionServiceProperties
 {
     public string BaseUrl { get; set; }
     public string TransferRequest { get; set; }
+    public string CurrencyCode { get; set; }
+    public int PrincipalTransactionType { get; set; }
+    public int FeeTransactionType { get; set; }
+    public int VatTransactionType { get; set; }
+    public string PrincipalTssAccount { get; set; }
+    public string VatTssAccount { get; set; }
+    public Dictionary<string,string> FeeTssAccounts { get; set; }
+    public string FeeDefaultTssAccount { get; set; }
+
+}
+
+public class ImalInquiryServiceProperties
+{
+    public string BaseUrl { get; set; }
     public string GetAccountDetailsByNubanRequest { get; set; }
     public string GetAccountSuccessMessage { get; set; }
 }

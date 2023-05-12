@@ -1,5 +1,3 @@
-using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos.ImalTransaction;
-
 namespace Sterling.NIPOutwardService.Service.Services.Implementations.ExternalServices;
 
 
@@ -12,7 +10,7 @@ public class ImalTransactionService:IImalTransactionService
     {
         this.appSettings = appSettings.Value;
         this.httpClient = httpClient;
-        this.httpClient.BaseAddress = new Uri(this.appSettings.ImalServiceProperties.BaseUrl);
+        this.httpClient.BaseAddress = new Uri(this.appSettings.ImalProperties.ImalTransactionServiceProperties.BaseUrl);
         this.httpClient.Timeout = TimeSpan.FromMinutes(1);
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
@@ -32,7 +30,7 @@ public class ImalTransactionService:IImalTransactionService
             Application.Json); // using static System.Net.Mime.MediaTypeNames;    
             httpClient.DefaultRequestHeaders.Clear(); 
             using var httpResponseMessage = await httpClient
-            .PostAsync(appSettings.ImalServiceProperties.TransferRequest, requestPayload); 
+            .PostAsync(appSettings.ImalProperties.ImalTransactionServiceProperties.TransferRequest, requestPayload); 
             var response = httpResponseMessage.Content.ReadAsStringAsync().Result;
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             outboundLog.ResponseDetails = response;
@@ -48,36 +46,6 @@ public class ImalTransactionService:IImalTransactionService
 
         }
         
-    }
-
-    public async Task<ImalGetAccountDetailsResponse> GetAccountDetailsByNuban(string nuban)
-    {
-        try
-        {
-            outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.GetAccountDetailsByNuban)}";
-            outboundLog.RequestDetails = nuban;
-
-            var request = appSettings.ImalServiceProperties.GetAccountDetailsByNubanRequest + nuban;
-
-            var httpResponseMessage =
-            await httpClient.GetAsync(request);
-
-            var response = await httpResponseMessage.Content.ReadAsStringAsync();
-
-            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.ResponseDetails = response;
-
-            return JsonConvert.DeserializeObject<ImalGetAccountDetailsResponse>(response);
-        }
-        catch (Exception ex)
-        {
-            outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-            outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
-            "\r\n" + $@"Exception Details: {ex.Message} {ex.StackTrace}";
-            return null;
-        }
-
     }
 
     public OutboundLog GetOutboundLog()

@@ -3,6 +3,7 @@ namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 public class NIPOutwardDebitService : INIPOutwardDebitService
 {
     private readonly INIPOutwardDebitProcessorService nipOutwardDebitProcessorService;
+    private readonly INIPOutwardImalDebitProcessorService nipOutwardImalDebitProcessorService;
     private readonly INIPOutwardWalletTransactionService nipOutwardWalletTransactionService;
 
     private readonly INIPOutwardDebitProducerService nipOutwardDebitProducerService;
@@ -15,11 +16,13 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     public NIPOutwardDebitService(INIPOutwardDebitProcessorService nipOutwardDebitProcessorService, 
     INIPOutwardDebitProducerService nipOutwardDebitProducerService, IInboundLogService inboundLogService,
     INIPOutwardTransactionService nipOutwardTransactionService, IMapper mapper, IUtilityHelper utilityHelper,
-    IHttpContextAccessor httpContextAccessor, INIPOutwardWalletTransactionService nipOutwardWalletTransactionService)
+    IHttpContextAccessor httpContextAccessor, INIPOutwardWalletTransactionService nipOutwardWalletTransactionService,
+    INIPOutwardImalDebitProcessorService nipOutwardImalDebitProcessorService)
     {
         this.nipOutwardWalletTransactionService = nipOutwardWalletTransactionService;
         this.nipOutwardDebitProcessorService = nipOutwardDebitProcessorService;
         this.nipOutwardDebitProducerService = nipOutwardDebitProducerService;
+        this.nipOutwardImalDebitProcessorService = nipOutwardImalDebitProcessorService;
         this.inboundLog = new InboundLog {
             InboundLogId = ObjectId.GenerateNewId().ToString(), 
             OutboundLogs = new List<OutboundLog>(),
@@ -113,8 +116,17 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
 
         if(request.PriorityLevel == 1)
         {
-            response =  await nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction);
-            inboundLog.OutboundLogs.AddRange(nipOutwardDebitProcessorService.GetOutboundLogs());
+            if(request.IsImalTransaction)
+            {
+                response =  await nipOutwardImalDebitProcessorService.ProcessTransaction(nipOutwardTransaction);
+                inboundLog.OutboundLogs.AddRange(nipOutwardImalDebitProcessorService.GetOutboundLogs());
+            }
+            else
+            {
+                response =  await nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction);
+                inboundLog.OutboundLogs.AddRange(nipOutwardDebitProcessorService.GetOutboundLogs());
+            }
+            
         }
         else
         {
