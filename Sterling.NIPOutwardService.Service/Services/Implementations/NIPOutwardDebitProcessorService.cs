@@ -38,7 +38,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         this.nipOutwardDebitLookupService = nipOutwardDebitLookupService;
         this.mapper = mapper;
         this.transactionDetailsRepository = transactionDetailsRepository;
-        this.outboundLogs = new List<OutboundLog> ();
+        this.outboundLogs = new List<OutboundLog>();
         this.utilityHelper = utilityHelper;
         this.fraudAnalyticsService = fraudAnalyticsService;
         this.transactionAmountLimitService = transactionAmountLimitService;

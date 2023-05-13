@@ -115,6 +115,9 @@ public static class DependencyInjection
         var kafkaSendToNIBSSProducerConfig = configuration.GetSection("KafkaSendToNIBSSProducerConfig");
         services.Configure<KafkaSendToNIBSSProducerConfig>(kafkaSendToNIBSSProducerConfig);
 
+        var kafkaImalSendToNIBSSProducerConfig = configuration.GetSection("KafkaImalSendToNIBSSProducerConfig");
+        services.Configure<KafkaImalSendToNIBSSProducerConfig>(kafkaImalSendToNIBSSProducerConfig);
+
         return services;
     }
 

@@ -6,14 +6,17 @@ public class NIPOutwardSendToNIBSSProducerService : INIPOutwardSendToNIBSSProduc
     public readonly IProducer<Null, string> producer;
     public readonly AppSettings appSettings;
     public readonly KafkaSendToNIBSSProducerConfig kafkaSendToNIBSSProducerConfig;
+    public readonly KafkaImalSendToNIBSSProducerConfig kafkaImalSendToNIBSSProducerConfig;
     private OutboundLog outboundLog;
 
     public NIPOutwardSendToNIBSSProducerService(IProducer<Null, string> producer, IOptions<AppSettings> appSettings,
-        IOptions<KafkaSendToNIBSSProducerConfig> kafkaSendToNIBSSProducerConfig)
+        IOptions<KafkaSendToNIBSSProducerConfig> kafkaSendToNIBSSProducerConfig,
+         IOptions<KafkaImalSendToNIBSSProducerConfig> kafkaImalSendToNIBSSProducerConfig)
     {
         this.producer = producer;
         this.appSettings = appSettings.Value;
         this.kafkaSendToNIBSSProducerConfig = kafkaSendToNIBSSProducerConfig.Value;
+        this.kafkaImalSendToNIBSSProducerConfig = kafkaImalSendToNIBSSProducerConfig.Value;
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
 
@@ -25,7 +28,14 @@ public class NIPOutwardSendToNIBSSProducerService : INIPOutwardSendToNIBSSProduc
 
         try
         {
-            await ProduceAsync(request);
+            if(request.IsImalTransaction)
+            {
+                await ProduceImalAsync(request);
+            }
+            else
+            {
+                await ProduceAsync(request);
+            }
             result.IsSuccess = true;
             result.Message = "Transaction has been pushed for processing";
             
@@ -46,6 +56,12 @@ public class NIPOutwardSendToNIBSSProducerService : INIPOutwardSendToNIBSSProduc
 
     public async Task ProduceAsync (NIPOutwardTransaction request) =>
         await producer.ProduceAsync(kafkaSendToNIBSSProducerConfig.OutwardSendToNIBSSTopic, new Message<Null, string> 
+        {
+            Value = JsonConvert.SerializeObject(request),
+        });
+
+    public async Task ProduceImalAsync (NIPOutwardTransaction request) =>
+        await producer.ProduceAsync(kafkaImalSendToNIBSSProducerConfig.OutwardSendToNIBSSTopic, new Message<Null, string> 
         {
             Value = JsonConvert.SerializeObject(request),
         });
