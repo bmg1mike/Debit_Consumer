@@ -12,7 +12,7 @@ public class WalletTransactionService:IWalletTransactionService
         this.encryption = encryption;
         this.httpClient = httpClient;
         this.httpClient.BaseAddress = new Uri(this.appSettings.WalletTransactionServiceProperties.BaseUrl);
-        this.httpClient.Timeout = TimeSpan.FromMinutes(1);
+        this.httpClient.Timeout = TimeSpan.FromMinutes(this.appSettings.WalletTransactionServiceProperties.TimeoutInMinutes);
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
 

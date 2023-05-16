@@ -13,7 +13,7 @@ public class ImalInquiryService:IImalInquiryService
         this.appSettings = appSettings.Value;
         this.httpClient = httpClient;
         this.httpClient.BaseAddress = new Uri(this.appSettings.ImalProperties.ImalInquiryServiceProperties.BaseUrl);
-        this.httpClient.Timeout = TimeSpan.FromMinutes(1);
+        this.httpClient.Timeout = TimeSpan.FromMinutes(this.appSettings.ImalProperties.ImalInquiryServiceProperties.TimeoutInMinutes);
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
 

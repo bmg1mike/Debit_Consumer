@@ -7,14 +7,6 @@ public class AppSettings
     public string SterlingBankCode { get; set; }
     public string SterlingProSuspenseAccount { get; set; }
     public string OneBankWalletPoolAccount { get; set; }
-    public string ProxySwitch { get; set; }
-    public int ProxyPort { get; set; }
-    public string ProxyHost { get; set; }
-    public string ProxyUsername { get; set; }
-    public string ProxyPassword { get; set; }
-    public string FraudBaseUrl { get; set; }
-    public string FraudAnalyticsRequest { get; set; }
-    public decimal FraudMinimumAmount { get; set; }
     public string NIP_PL_ACCT_USSD { get; set; }
     public string NIP_PL_ACCT_CIB { get; set; }
     public string NIP_PL_ACCT_WHATSAPP { get; set; }
@@ -39,6 +31,7 @@ public class VtellerProperties
     public string ApiKey { get; set; }
     public string BaseUrl { get; set; }
     public string DebitRequest { get; set; }
+    public int TimeoutInMinutes { get; set; }
 }
 
 public class WalletFraudAnalyticsProperties 
@@ -47,6 +40,7 @@ public class WalletFraudAnalyticsProperties
     public string GetScoreRequest { get; set; }
     public int TransactionType { get; set; }
     public bool IsWalletOnly { get; set; }
+    public int TimeoutInMinutes { get; set; }
 }
 
 public class WalletTransactionServiceProperties
@@ -56,6 +50,7 @@ public class WalletTransactionServiceProperties
     public string SecretKey { get; set; }
     public string IV { get; set; }
     public string WalletPoolAccount { get; set; }
+    public int TimeoutInMinutes { get; set; }
 }
 
 public class NibssNipServiceProperties
@@ -93,7 +88,7 @@ public class ImalTransactionServiceProperties
     public string VatTssAccount { get; set; }
     public Dictionary<string,string> FeeTssAccounts { get; set; }
     public string FeeDefaultTssAccount { get; set; }
-
+    public int TimeoutInMinutes { get; set; }
 }
 
 public class ImalInquiryServiceProperties
@@ -101,4 +96,5 @@ public class ImalInquiryServiceProperties
     public string BaseUrl { get; set; }
     public string GetAccountDetailsByNubanRequest { get; set; }
     public string GetAccountSuccessMessage { get; set; }
+    public int TimeoutInMinutes { get; set; }
 }

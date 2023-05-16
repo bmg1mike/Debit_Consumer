@@ -11,7 +11,7 @@ public class ImalTransactionService:IImalTransactionService
         this.appSettings = appSettings.Value;
         this.httpClient = httpClient;
         this.httpClient.BaseAddress = new Uri(this.appSettings.ImalProperties.ImalTransactionServiceProperties.BaseUrl);
-        this.httpClient.Timeout = TimeSpan.FromMinutes(1);
+        this.httpClient.Timeout = TimeSpan.FromMinutes(this.appSettings.ImalProperties.ImalTransactionServiceProperties.TimeoutInMinutes);
         this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
     }
 

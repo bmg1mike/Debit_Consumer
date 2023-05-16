@@ -42,6 +42,26 @@ builder.Services.AddHealthChecks()
             (builder.Configuration.GetSection("AppSettings:VtellerProperties:BaseUrl").Value),
              name: "VTeller",
              failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:WalletFraudAnalyticsProperties:BaseUrl").Value),
+             name: "Wallet Fraud Analytics",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:WalletTransactionServiceProperties:BaseUrl").Value),
+             name: "Wallet to Wallet Transaction",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:ImalProperties:ImalInquiryServiceProperties:BaseUrl").Value),
+             name: "Imal Inquiry Service",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:ImalProperties:ImalTransactionServiceProperties:BaseUrl").Value),
+             name: "Imal Transaction Service",
+             failureStatus: HealthStatus.Degraded)
+    .AddSqlServer(
+             builder.Configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value, 
+             name: "Sql Server Database",
+             failureStatus: HealthStatus.Degraded)
     .AddSqlServer(
              builder.Configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value, 
              name: "Sql Server Database",

@@ -382,89 +382,89 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     }
 
 
-    public async Task<FundsTransferResult<NIPOutwardTransaction>> DoFraudCheck(NIPOutwardTransaction transaction, 
-    NIPOutwardDebitLookup nipOutwardDebitLookup)
-    {
-        FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
-        OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
-        result.IsSuccess = false;
-        try
-        {
-            if (transaction.DebitAccountNumber != appSettings.SterlingProSuspenseAccount)
-            {
-                if (string.IsNullOrWhiteSpace(transaction.FraudScore))
-                {
-                    #region DoFraudAnalysis
-                    decimal FraudMinimumAmount = appSettings.FraudMinimumAmount;
+    // public async Task<FundsTransferResult<NIPOutwardTransaction>> DoFraudCheck(NIPOutwardTransaction transaction, 
+    // NIPOutwardDebitLookup nipOutwardDebitLookup)
+    // {
+    //     FundsTransferResult<NIPOutwardTransaction> result = new FundsTransferResult<NIPOutwardTransaction>();
+    //     OutboundLog outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() }; 
+    //     result.IsSuccess = false;
+    //     try
+    //     {
+    //         if (transaction.DebitAccountNumber != appSettings.SterlingProSuspenseAccount)
+    //         {
+    //             if (string.IsNullOrWhiteSpace(transaction.FraudScore))
+    //             {
+    //                 #region DoFraudAnalysis
+    //                 decimal FraudMinimumAmount = appSettings.FraudMinimumAmount;
 
-                    if (transaction.Amount >= FraudMinimumAmount)
-                    {
-                        FraudAnalyticsResponse fraudrsp = await fraudAnalyticsService.DoFraudAnalytics(transaction.AppId.ToString(), 
-                        transaction.ID.ToString(), transaction.SessionID, "101", transaction.DebitAccountNumber, 
-                        transaction.CreditAccountNumber, transaction.Amount.ToString(), transaction.OriginatorName, 
-                        transaction.CreditAccountName, transaction.BeneficiaryBankCode, "00", transaction.PaymentReference, transaction.OriginatorEmail);
+    //                 if (transaction.Amount >= FraudMinimumAmount)
+    //                 {
+    //                     FraudAnalyticsResponse fraudrsp = await fraudAnalyticsService.DoFraudAnalytics(transaction.AppId.ToString(), 
+    //                     transaction.ID.ToString(), transaction.SessionID, "101", transaction.DebitAccountNumber, 
+    //                     transaction.CreditAccountNumber, transaction.Amount.ToString(), transaction.OriginatorName, 
+    //                     transaction.CreditAccountName, transaction.BeneficiaryBankCode, "00", transaction.PaymentReference, transaction.OriginatorEmail);
                         
-                        outboundLogs.Add(fraudAnalyticsService.GetOutboundLog());
+    //                     outboundLogs.Add(fraudAnalyticsService.GetOutboundLog());
 
-                        if(fraudrsp != null)
-                        {
-                            var recordsUpdated = 0;
-                            if (fraudrsp.fraudScore != "0")
-                            {
-                                transaction.StatusFlag = 11;
-                                recordsUpdated = await nipOutwardTransactionService.Update(transaction);
+    //                     if(fraudrsp != null)
+    //                     {
+    //                         var recordsUpdated = 0;
+    //                         if (fraudrsp.fraudScore != "0")
+    //                         {
+    //                             transaction.StatusFlag = 11;
+    //                             recordsUpdated = await nipOutwardTransactionService.Update(transaction);
                                 
-                                var failureUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+    //                             var failureUpdateLog = nipOutwardTransactionService.GetOutboundLog();
                 
-                                if(!string.IsNullOrEmpty(failureUpdateLog.ExceptionDetails))
-                                {
-                                    outboundLogs.Add(failureUpdateLog);
-                                }
+    //                             if(!string.IsNullOrEmpty(failureUpdateLog.ExceptionDetails))
+    //                             {
+    //                                 outboundLogs.Add(failureUpdateLog);
+    //                             }
 
-                                if (recordsUpdated > 0)
-                                {
-                                    await nipOutwardDebitLookupService.Delete(nipOutwardDebitLookup);
-                                }
-                                result.IsSuccess = false;
-                                result.Message = "Fraud Check failed";
-                                return result;
-                            }
-                            transaction.FraudResponse = fraudrsp.responseCode;
-                            transaction.FraudScore = fraudrsp.fraudScore;
-                            recordsUpdated = await nipOutwardTransactionService.Update(transaction);
+    //                             if (recordsUpdated > 0)
+    //                             {
+    //                                 await nipOutwardDebitLookupService.Delete(nipOutwardDebitLookup);
+    //                             }
+    //                             result.IsSuccess = false;
+    //                             result.Message = "Fraud Check failed";
+    //                             return result;
+    //                         }
+    //                         transaction.FraudResponse = fraudrsp.responseCode;
+    //                         transaction.FraudScore = fraudrsp.fraudScore;
+    //                         recordsUpdated = await nipOutwardTransactionService.Update(transaction);
 
-                            var successUpdateLog = nipOutwardTransactionService.GetOutboundLog();
+    //                         var successUpdateLog = nipOutwardTransactionService.GetOutboundLog();
                 
-                            if(!string.IsNullOrEmpty(successUpdateLog.ExceptionDetails))
-                            {
-                                outboundLogs.Add(successUpdateLog);
-                            }
+    //                         if(!string.IsNullOrEmpty(successUpdateLog.ExceptionDetails))
+    //                         {
+    //                             outboundLogs.Add(successUpdateLog);
+    //                         }
                             
-                        }
+    //                     }
 
-                    }
+    //                 }
 
-                    #endregion
-                }
-            }
+    //                 #endregion
+    //             }
+    //         }
 
-            result.IsSuccess = true;
-            result.Content = transaction;
-            return result;
-        }
-        catch (System.Exception ex)
-        {
-            result.IsSuccess = false;
-            result.Message = "Transaction failed";
-            result.ErrorMessage = "Internal Server Error";
-            var request = JsonConvert.SerializeObject(transaction);
-            outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
-            Exception Details: {ex.Message} {ex.StackTrace}";
-            outboundLogs.Add(outboundLog);
-            return result;
-        }
+    //         result.IsSuccess = true;
+    //         result.Content = transaction;
+    //         return result;
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         result.IsSuccess = false;
+    //         result.Message = "Transaction failed";
+    //         result.ErrorMessage = "Internal Server Error";
+    //         var request = JsonConvert.SerializeObject(transaction);
+    //         outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
+    //         Exception Details: {ex.Message} {ex.StackTrace}";
+    //         outboundLogs.Add(outboundLog);
+    //         return result;
+    //     }
         
-    }
+    // }
 
     public async Task<FundsTransferResult<string>> AppIDCheck(NIPOutwardTransaction transaction)
     {
@@ -1119,7 +1119,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         result.IsSuccess = false;
         try
         {
-            if (response.Respreturnedcode1 == "1x")
+            if (response?.Respreturnedcode1 == "1x")
             {
             
                 //log.Info("The Response from Banks is " + response.Respreturnedcode1 + "  and hence, vTeller logs it as 3 For SessionID " + transaction.SessionID + " T24 msg ==> " + response.error_text);
@@ -1146,7 +1146,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 return result;
             }
 
-            if (response.Respreturnedcode1 != "0")
+            if (response?.Respreturnedcode1 != "0")
             {
                 //log.Info("The Response from Banks is " + response.Respreturnedcode1 + "  and hence, vTeller logs it as 2. For SessionID " + transaction.SessionID + " T24 msg ==> " + response.error_text);
                 //msg = "Error: Unable to debit customer's account for Principal";
@@ -1302,7 +1302,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             result.ErrorMessage = "Internal Server Error";
             result.Content = transaction;
             var request = "Transaction object:" + JsonConvert.SerializeObject(transaction) + 
-            " vTellerResponse: " + JsonConvert.SerializeObject(transaction) +
+            " vTellerResponse: " + JsonConvert.SerializeObject(response) +
             $@"  branch code: {response}";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";

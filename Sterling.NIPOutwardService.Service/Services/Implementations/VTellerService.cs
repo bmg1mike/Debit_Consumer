@@ -48,7 +48,7 @@ public class VTellerService : IVtellerService
         this.encryption = encryption;
         this.httpClient = httpClient;
         this.httpClient.BaseAddress = new Uri(this.appSettings.VtellerProperties.BaseUrl);
-        this.httpClient.Timeout = TimeSpan.FromMinutes(1);
+        this.httpClient.Timeout = TimeSpan.FromMinutes(this.appSettings.VtellerProperties.TimeoutInMinutes);
     }
     public List<OutboundLog> GetOutboundLogs()
     {

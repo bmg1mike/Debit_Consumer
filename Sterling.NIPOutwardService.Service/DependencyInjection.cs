@@ -10,7 +10,7 @@ public static class DependencyInjection
 
         services.AddScoped<INIPOutwardTransactionService, NIPOutwardTransactionService>();
         services.AddScoped<IInboundLogService, InboundLogService>();
-        services.AddScoped<IFraudAnalyticsService, FraudAnalyticsService>();
+        //services.AddScoped<IFraudAnalyticsService, FraudAnalyticsService>();
         services.AddScoped<INIPOutwardDebitLookupService, NIPOutwardDebitLookupService>();
         services.AddScoped<INIPOutwardSendToNIBSSProducerService, NIPOutwardSendToNIBSSProducerService>();
         services.AddScoped<INIPOutwardDebitProcessorService, NIPOutwardDebitProcessorService>();
