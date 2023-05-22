@@ -987,8 +987,9 @@ public class NIPOutwardImalDebitProcessorService : INIPOutwardImalDebitProcessor
                 DifferentTradeValueDate = 0,
                 TransactionAmount = amount,
                 CurrencyCode = appSettings.ImalProperties.ImalTransactionServiceProperties.CurrencyCode,
-                PaymentReference = transaction.SessionID,
+                PaymentReference = transaction.PaymentReference,
                 NarrationLine1 = transaction.PaymentReference,
+                NarrationLine2 = transaction.SessionID,
                 BeneficiaryName = transaction.CreditAccountName,
                 SenderName = transaction.OriginatorName,
                 ValueDate = DateTime.UtcNow.AddHours(1).ToString("yyyy-MM-dd HH:mm:ss.ffffff")

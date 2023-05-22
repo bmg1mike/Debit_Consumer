@@ -10,6 +10,7 @@ public class ImalTransactionRequestDto
     public string CurrencyCode { get; set; }
     public string PaymentReference { get; set; }
     public string NarrationLine1 { get; set; }
+    public string NarrationLine2 { get; set; }
     public string BeneficiaryName { get; set; }
     public string SenderName { get; set; }
     public string ValueDate { get; set; }

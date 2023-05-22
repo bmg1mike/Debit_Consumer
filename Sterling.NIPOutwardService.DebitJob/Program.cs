@@ -33,11 +33,7 @@ builder.Services.AddHealthChecks()
    .AddUrlGroup(new Uri    
             ("https://www.google.com"),
              name: "Internet Connectivity",
-             failureStatus: HealthStatus.Degraded)
-    .AddUrlGroup(new Uri    
-            (builder.Configuration.GetSection("AppSettings:FraudBaseUrl").Value),
-             name: "Fraud API",
-             failureStatus: HealthStatus.Degraded)
+             failureStatus: HealthStatus.Degraded);
     .AddUrlGroup(new Uri    
             (builder.Configuration.GetSection("AppSettings:VtellerProperties:BaseUrl").Value),
              name: "VTeller",
@@ -57,10 +53,6 @@ builder.Services.AddHealthChecks()
     .AddUrlGroup(new Uri    
             (builder.Configuration.GetSection("AppSettings:ImalProperties:ImalTransactionServiceProperties:BaseUrl").Value),
              name: "Imal Transaction Service",
-             failureStatus: HealthStatus.Degraded)
-    .AddSqlServer(
-             builder.Configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value, 
-             name: "Sql Server Database",
              failureStatus: HealthStatus.Degraded)
     .AddSqlServer(
              builder.Configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value, 
