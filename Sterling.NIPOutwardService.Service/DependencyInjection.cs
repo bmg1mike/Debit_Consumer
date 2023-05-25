@@ -98,6 +98,8 @@ public static class DependencyInjection
         services.Configure<KafkaDebitConsumerConfig>(kafkaDebitConsumerConfig);
 
         services.AddScoped<NIPOutwardDebitProcessorService>();
+        services.AddScoped<NIPOutwardImalDebitProcessorService>();
+        services.AddScoped<InboundLogService>();
 
         return services;
     }

@@ -438,7 +438,7 @@ public class VTellerService : IVtellerService
             outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
                 "\r\n" + $@"RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}";
             //Log.Error($@"Vteller RawRequest {rawRequest} Exception Details: {ex.Message} {ex.StackTrace}");
-            //vTellerResponse.Respreturnedcode1 = "1x";
+            vTellerResponse.Respreturnedcode1 = "1x";
             
         }
         this.outboundLogs.Add(outboundLog);

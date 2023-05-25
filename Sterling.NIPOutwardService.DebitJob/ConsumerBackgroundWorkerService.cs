@@ -84,7 +84,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                                 }
                             }
                         }
-                    }
+                    } 
                     catch (System.Exception ex)
                     {
                         logger.Error(ex.Message + $"raw request {transactionResult.Message.Value}", ex);

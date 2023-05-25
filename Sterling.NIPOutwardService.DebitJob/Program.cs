@@ -33,7 +33,7 @@ builder.Services.AddHealthChecks()
    .AddUrlGroup(new Uri    
             ("https://www.google.com"),
              name: "Internet Connectivity",
-             failureStatus: HealthStatus.Degraded);
+             failureStatus: HealthStatus.Degraded)
     .AddUrlGroup(new Uri    
             (builder.Configuration.GetSection("AppSettings:VtellerProperties:BaseUrl").Value),
              name: "VTeller",
