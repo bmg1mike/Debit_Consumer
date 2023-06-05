@@ -20,7 +20,7 @@ public partial class NIPOutwardTransactionController : BaseController
     [Route("FundsTransfer")]
     public async Task<ActionResult> FundsTransfer([FromBody][Required] CreateNIPOutwardTransactionDto request)
     {   
-        FundsTransferResult<string> response =  await nipOutwardDebitService.ProcessTransaction(request);
+        FundsTransferResult<string> response =  await nipOutwardDebitService.ProcessAndLog(request);
         
         return Ok(response);
     }

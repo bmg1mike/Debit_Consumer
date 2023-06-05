@@ -27,8 +27,8 @@ public static class DependencyInjection
         services.AddSingleton<IMemoryCache, MemoryCache>();
         
 
-        services.AddHttpClient<IFraudAnalyticsService, FraudAnalyticsService>()
-        .AddPolicyHandler(GetRetryPolicy());
+        // services.AddHttpClient<IFraudAnalyticsService, FraudAnalyticsService>()
+        // .AddPolicyHandler(GetRetryPolicy());
 
         services.AddHttpClient<IVtellerService, VTellerService>();
 

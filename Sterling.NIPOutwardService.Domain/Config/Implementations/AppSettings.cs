@@ -70,6 +70,8 @@ public class NibssNipServiceProperties
     public string NIBSSPrivateKeyPassword { get; set; }
 }
 
+
+
 public class ImalProperties 
 {
     public ImalTransactionServiceProperties ImalTransactionServiceProperties { get; set; }

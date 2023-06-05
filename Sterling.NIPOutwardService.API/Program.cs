@@ -1,4 +1,3 @@
-using System.Net;
 using Confluent.Kafka;
 
 var builder = WebApplication.CreateBuilder(args);

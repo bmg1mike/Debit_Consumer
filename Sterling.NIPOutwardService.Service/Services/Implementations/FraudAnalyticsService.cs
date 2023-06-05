@@ -10,16 +10,15 @@ public class FraudAnalyticsService : IFraudAnalyticsService
     private readonly HttpClient httpClient;
     private readonly AppSettings appSettings;
     private OutboundLog outboundLog;
-
-
-    public FraudAnalyticsService(IOptions<AppSettings> appSettings, HttpClient httpClient)
-    {
-        this.appSettings = appSettings.Value;
-        this.httpClient = httpClient;
-        //this.httpClient.BaseAddress = new Uri(this.appSettings.FraudBaseUrl);
-        this.httpClient.Timeout = TimeSpan.FromMinutes(1);
-        this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
-    }
+    // public FraudAnalyticsService(IOptions<AppSettings> appSettings, HttpClient httpClient)
+    // {
+    //     this.appSettings = appSettings.Value;
+    //     this.httpClient = httpClient;
+    //     this.httpClient.BaseAddress = new Uri(this.appSettings.FraudServiceProperties.BaseUrl);
+    //     this.httpClient.Timeout = TimeSpan.FromMinutes(1);
+    //     this.outboundLog = new OutboundLog { OutboundLogId = ObjectId.GenerateNewId().ToString() };
+    // }
+    
     // public async Task<FraudAnalyticsResponse> DoFraudAnalytics(string appId, string refId, string sessionId, 
     // string reqType, string fromAccount, string toAccount, string amount, string fromAcctName, string destAcctName, 
     // string destBankCode, string NEResponse, string paymentRef, string Email)
@@ -59,11 +58,13 @@ public class FraudAnalyticsService : IFraudAnalyticsService
     //             Email = Email
     //         };
 
-    //         if (appSettings.ProxySwitch.ToUpper() == "ON")
+    //         if (appSettings.FraudServiceProperties.ProxySwitch.ToUpper() == "ON")
     //         {
-    //             WebRequest.DefaultWebProxy = new WebProxy(appSettings.ProxyHost, appSettings.ProxyPort)
+    //             WebRequest.DefaultWebProxy = new WebProxy(appSettings.FraudServiceProperties.ProxyHost, 
+    //             appSettings.FraudServiceProperties.ProxyPort)
     //             {
-    //                 Credentials = new NetworkCredential(appSettings.ProxyUsername, appSettings.ProxyPassword)
+    //                 Credentials = new NetworkCredential(appSettings.FraudServiceProperties.ProxyUsername, 
+    //                 appSettings.FraudServiceProperties.ProxyPassword)
     //             };
     //         }
     //         else
@@ -74,19 +75,24 @@ public class FraudAnalyticsService : IFraudAnalyticsService
     //         }
     //         var rawRequest = JsonConvert.SerializeObject(request);
 
-    //             outboundLog.APICalled = appSettings.FraudBaseUrl + appSettings.FraudAnalyticsRequest;
-    //             outboundLog.APIMethod = appSettings.FraudBaseUrl + appSettings.FraudAnalyticsRequest;
-    //             outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
-    //             outboundLog.RequestDetails = rawRequest;
+    //         outboundLog.APICalled = appSettings.FraudServiceProperties.BaseUrl + 
+    //         appSettings.FraudServiceProperties.AnalyticsRequest;
+
+    //         outboundLog.APIMethod = appSettings.FraudServiceProperties.BaseUrl + 
+    //         appSettings.FraudServiceProperties.AnalyticsRequest;
+
+    //         outboundLog.RequestDateTime = DateTime.UtcNow.AddHours(1);
+    //         outboundLog.RequestDetails = rawRequest;
                 
     //         var requestPayload = new StringContent(
     //         rawRequest,
     //         Encoding.UTF8,
     //         Application.Json); // using static System.Net.Mime.MediaTypeNames;                 
-    //         using var httpResponseMessage = await httpClient.PostAsync(appSettings.FraudAnalyticsRequest, requestPayload); 
+    //         using var httpResponseMessage = await httpClient.PostAsync(appSettings.FraudServiceProperties.AnalyticsRequest, requestPayload); 
     //         var response = httpResponseMessage.Content.ReadAsStringAsync().Result;
     //         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
-    //         outboundLog.RequestDetails = response;
+    //         outboundLog.RequestDetails = rawRequest;
+    //         outboundLog.ResponseDetails = response;
     //         return JsonConvert.DeserializeObject<FraudAnalyticsResponse>(response);
 
     //     }

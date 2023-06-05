@@ -34,7 +34,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         this.httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<FundsTransferResult<string>> ProcessTransaction(CreateNIPOutwardTransactionDto request)
+    public async Task<FundsTransferResult<string>> ProcessAndLog(CreateNIPOutwardTransactionDto request)
     {
         var response = new FundsTransferResult<string>();
         try

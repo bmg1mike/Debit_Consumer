@@ -14,7 +14,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     private List<OutboundLog> outboundLogs;
     private readonly IUtilityHelper utilityHelper;
     private readonly AsyncRetryPolicy retryPolicy;
-    private readonly IFraudAnalyticsService fraudAnalyticsService;
     private readonly ITransactionAmountLimitService transactionAmountLimitService;
     private readonly IDebitAccountRepository debitAccountRepository;
     private readonly IIncomeAccountRepository incomeAccountRepository;
@@ -26,10 +25,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
     public NIPOutwardDebitProcessorService(INIPOutwardTransactionService nipOutwardTransactionService, 
     IInboundLogService inboundLogService, IOptions<AppSettings> appSettings, IMapper mapper,
     INIPOutwardDebitLookupService nipOutwardDebitLookupService, ITransactionDetailsRepository transactionDetailsRepository,
-    IUtilityHelper utilityHelper, IFraudAnalyticsService fraudAnalyticsService, 
-    ITransactionAmountLimitService transactionAmountLimitService, IDebitAccountRepository debitAccountRepository,
-    IIncomeAccountRepository incomeAccountRepository, IVtellerService vtellerService,
-    INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService, 
+    IUtilityHelper utilityHelper, ITransactionAmountLimitService transactionAmountLimitService, 
+    IDebitAccountRepository debitAccountRepository, IIncomeAccountRepository incomeAccountRepository, 
+    IVtellerService vtellerService, INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService, 
     INIPOutwardNameEnquiryService nipOutwardNameEnquiryService, IMemoryCache cache)
     {
         this.nipOutwardTransactionService = nipOutwardTransactionService;
@@ -40,7 +38,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         this.transactionDetailsRepository = transactionDetailsRepository;
         this.outboundLogs = new List<OutboundLog>();
         this.utilityHelper = utilityHelper;
-        this.fraudAnalyticsService = fraudAnalyticsService;
         this.transactionAmountLimitService = transactionAmountLimitService;
         this.debitAccountRepository = debitAccountRepository;
         this.incomeAccountRepository = incomeAccountRepository;

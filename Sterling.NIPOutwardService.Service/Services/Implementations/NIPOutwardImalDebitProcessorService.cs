@@ -11,7 +11,6 @@ public class NIPOutwardImalDebitProcessorService : INIPOutwardImalDebitProcessor
     private List<OutboundLog> outboundLogs;
     private readonly IUtilityHelper utilityHelper;
     private readonly AsyncRetryPolicy retryPolicy;
-    private readonly IFraudAnalyticsService fraudAnalyticsService;
     private readonly ITransactionAmountLimitService transactionAmountLimitService;
     private readonly INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService;
     private readonly INIPOutwardNameEnquiryService nipOutwardNameEnquiryService;
@@ -21,8 +20,7 @@ public class NIPOutwardImalDebitProcessorService : INIPOutwardImalDebitProcessor
     public NIPOutwardImalDebitProcessorService(INIPOutwardTransactionService nipOutwardTransactionService, 
     IInboundLogService inboundLogService, IOptions<AppSettings> appSettings, IMapper mapper,
     INIPOutwardDebitLookupService nipOutwardDebitLookupService, ITransactionDetailsRepository transactionDetailsRepository,
-    IUtilityHelper utilityHelper, IFraudAnalyticsService fraudAnalyticsService, 
-    ITransactionAmountLimitService transactionAmountLimitService,
+    IUtilityHelper utilityHelper, ITransactionAmountLimitService transactionAmountLimitService,
     INIPOutwardSendToNIBSSProducerService nipOutwardSendToNIBSSProducerService, 
     INIPOutwardNameEnquiryService nipOutwardNameEnquiryService, IImalInquiryService imalInquiryService,
     IImalTransactionService imalTransactionService)
@@ -35,7 +33,6 @@ public class NIPOutwardImalDebitProcessorService : INIPOutwardImalDebitProcessor
         this.transactionDetailsRepository = transactionDetailsRepository;
         this.outboundLogs = new List<OutboundLog> ();
         this.utilityHelper = utilityHelper;
-        this.fraudAnalyticsService = fraudAnalyticsService;
         this.transactionAmountLimitService = transactionAmountLimitService;
         this.nipOutwardSendToNIBSSProducerService = nipOutwardSendToNIBSSProducerService;
         this.nipOutwardNameEnquiryService = nipOutwardNameEnquiryService;
