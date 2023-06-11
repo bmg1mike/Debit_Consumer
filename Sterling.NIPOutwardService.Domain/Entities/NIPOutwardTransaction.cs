@@ -56,5 +56,6 @@ public class NIPOutwardTransaction
     public bool IsWalletTransaction { get; set; }
     public string WalletAccountNumber { get; set; }
     public bool IsImalTransaction { get; set; }
+    public int DebitRequeryCounter { get; set; }
 }
 

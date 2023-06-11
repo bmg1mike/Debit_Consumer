@@ -55,7 +55,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                                 using (var scope = serviceProvider.CreateScope()) // this will use `IServiceScopeFactory` internally
                                 {
                                     var inboundLogService = scope.ServiceProvider.GetRequiredService<InboundLogService>();
-                                     var inboundLog = new InboundLog {
+                                    var inboundLog = new InboundLog {
                                         InboundLogId = ObjectId.GenerateNewId().ToString(), 
                                         OutboundLogs = new List<OutboundLog>(),
                                     };
@@ -64,21 +64,35 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                                     inboundLog.APIMethod = "FundsTransfer";
                                     inboundLog.RequestDetails = transactionResult.Message.Value;
 
-                                    var result = new FundsTransferResult<string>();
-                                    if(nipOutwardTransaction.IsImalTransaction)
+                                    var currentDate = DateTime.UtcNow.AddHours(1);
+                                    var dateDifference = nipOutwardTransaction.DateAdded?.AddHours(24);
+
+                                    if(dateDifference < currentDate)
                                     {
-                                        var nipOutwardImalDebitProcessorService = scope.ServiceProvider.GetRequiredService<NIPOutwardImalDebitProcessorService>();
-                                        result = nipOutwardImalDebitProcessorService.ProcessTransaction(nipOutwardTransaction).Result;
-                                        inboundLog.OutboundLogs.AddRange(nipOutwardImalDebitProcessorService.GetOutboundLogs());
+                                        inboundLog.ResponseDetails = $@"Request not processed as 
+                                        transaction with input date {nipOutwardTransaction.DateAdded.ToString()} is 
+                                        older than 24 hours. Current date is {currentDate.ToString()}";
                                     }
                                     else
                                     {
-                                        var nipOutwardDebitProcessorService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitProcessorService>();
-                                        result = nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction).Result;
-                                        inboundLog.OutboundLogs.AddRange(nipOutwardDebitProcessorService.GetOutboundLogs());
+                                        var result = new FundsTransferResult<string>();
+                                        if(nipOutwardTransaction.IsImalTransaction)
+                                        {
+                                            var nipOutwardImalDebitProcessorService = scope.ServiceProvider.GetRequiredService<NIPOutwardImalDebitProcessorService>();
+                                            result = nipOutwardImalDebitProcessorService.ProcessTransaction(nipOutwardTransaction).Result;
+                                            inboundLog.OutboundLogs.AddRange(nipOutwardImalDebitProcessorService.GetOutboundLogs());
+                                        }
+                                        else
+                                        {
+                                            var nipOutwardDebitProcessorService = scope.ServiceProvider.GetRequiredService<NIPOutwardDebitProcessorService>();
+                                            result = nipOutwardDebitProcessorService.ProcessTransaction(nipOutwardTransaction).Result;
+                                            inboundLog.OutboundLogs.AddRange(nipOutwardDebitProcessorService.GetOutboundLogs());
+                                        }
+
+                                        inboundLog.ResponseDetails = JsonConvert.SerializeObject(result);
                                     }
 
-                                    inboundLog.ResponseDetails = JsonConvert.SerializeObject(result);
+                                    
                                     inboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                                     var logResult = inboundLogService.CreateInboundLog(inboundLog).Result;
                                 }
