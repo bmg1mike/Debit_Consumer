@@ -30,7 +30,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                 
                 var nipOutwardTransactionResults = new ConcurrentBag<ConsumeResult<Ignore, string>>();
 
-                for (int i = 0; i < kafkaDebitConsumerConfig.NumberOfTransactionToConsume; i++)
+                for (int i = 0; i < kafkaDebitConsumerConfig.NumberOfTransactionsToConsume; i++)
                 {
                     var consumedResult = consumer.Consume(TimeSpan.Zero);
                     if(consumedResult == null)
@@ -65,7 +65,7 @@ public class ConsumerBackgroundWorkerService : BackgroundService
                                     inboundLog.RequestDetails = transactionResult.Message.Value;
 
                                     var currentDate = DateTime.UtcNow.AddHours(1);
-                                    var dateDifference = nipOutwardTransaction.DateAdded?.AddHours(24);
+                                    var dateDifference = nipOutwardTransaction.DateAdded?.AddHours(kafkaDebitConsumerConfig.MaxAgeOfTransactionsToProcessInHours);
 
                                     if(dateDifference < currentDate)
                                     {

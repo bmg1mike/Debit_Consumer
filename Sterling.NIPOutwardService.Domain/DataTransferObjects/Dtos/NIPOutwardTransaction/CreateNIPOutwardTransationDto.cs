@@ -30,8 +30,15 @@ public class CreateNIPOutwardTransactionDto
     public string OriginatorKYCLevel { get; set; }
     public string TransactionLocation { get; set; }
     public int AppId { get; set; }
-    public int PriorityLevel { get; set; }
+    public PriorityLevel PriorityLevel { get; set; }
     public bool IsWalletTransaction { get; set; }
     public bool IsImalTransaction { get; set; }
     
+}
+
+public enum PriorityLevel 
+{
+    None,
+    PriorityLevel1,
+    PriorityLevel2
 }
