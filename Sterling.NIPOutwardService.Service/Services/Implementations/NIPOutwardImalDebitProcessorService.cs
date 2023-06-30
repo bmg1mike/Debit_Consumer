@@ -933,7 +933,7 @@ public class NIPOutwardImalDebitProcessorService : INIPOutwardImalDebitProcessor
             
             var  imalFeeTssAccount = imalFeeTssAccounts.GetValueOrDefault($"{nipOutwardTransaction.ChannelCode}", defaultTssAccount);
             
-            var imalFeeTransferRequest = CreateImalFundsTransferRequest(nipOutwardTransaction, nipOutwardTransaction.Amount,
+            var imalFeeTransferRequest = CreateImalFundsTransferRequest(nipOutwardTransaction, nIPOutwardCharges.NIPFeeAmount,
             imalFeeTssAccount, 
             appSettings.ImalProperties.ImalTransactionServiceProperties.FeeTransactionType);
 
@@ -941,7 +941,7 @@ public class NIPOutwardImalDebitProcessorService : INIPOutwardImalDebitProcessor
             outboundLogs.Add(imalTransactionService.GetOutboundLog());
             ftReference.Fee = imalFeeTransferResponse?.transactionNumber;
 
-            var imalVatTransferRequest = CreateImalFundsTransferRequest(nipOutwardTransaction, nipOutwardTransaction.Amount,
+            var imalVatTransferRequest = CreateImalFundsTransferRequest(nipOutwardTransaction, nIPOutwardCharges.NIPVatAmount,
             appSettings.ImalProperties.ImalTransactionServiceProperties.VatTssAccount, 
             appSettings.ImalProperties.ImalTransactionServiceProperties.VatTransactionType);
 
