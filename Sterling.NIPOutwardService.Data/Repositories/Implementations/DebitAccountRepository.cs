@@ -56,8 +56,8 @@ public class DebitAccountRepository : IDebitAccountRepository
                     cmd.Parameters.Add(":pACCT", OracleDbType.Varchar2).Value = AccountNumber;
                     cmd.Parameters.Add(":PREFCUR", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
                     
-                    await retryPolicy.ExecuteAsync(async () =>
-                    {
+                    //await retryPolicy.ExecuteAsync(async () =>
+                    //{
                         await connection.OpenAsync();
                         OracleDataReader dr = cmd.ExecuteReader();
                         if (dr.HasRows)
@@ -83,7 +83,7 @@ public class DebitAccountRepository : IDebitAccountRepository
                             outboundLog.ResponseDetails = "no data returned for record";
                         }
                         await connection.CloseAsync();
-                    });
+                    //});
                     
                 }
                 catch (Exception ex)
