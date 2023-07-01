@@ -166,7 +166,8 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
                 inboundLog.OutboundLogs.Add(outboundLog);
             }
 
-            await inboundLogService.CreateInboundLog(inboundLog);
+            Task.Run(() => LogToMongoDb(inboundLog));
+            //await inboundLogService.CreateInboundLog(inboundLog);
         }
         catch (System.Exception ex)
         {
@@ -179,6 +180,12 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
         }
        
         return response;
+    }
+
+    public void LogToMongoDb(InboundLog log)
+    {
+        inboundLogService.CreateInboundLog(inboundLog);
+        Thread.Sleep(1000);
     }
 
     public async Task<Result<TransactionValidationResponseDto>> ProcessCheck(TransactionValidationRequestDto request)

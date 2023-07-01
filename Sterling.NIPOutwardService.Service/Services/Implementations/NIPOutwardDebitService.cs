@@ -54,7 +54,8 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             response.Content = string.Empty;
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = response.ResponseTime;
-            await inboundLogService.CreateInboundLog(inboundLog);
+            //await inboundLogService.CreateInboundLog(inboundLog);
+            Task.Run(() => InboundToMongoDb(inboundLog));
         }
         catch (System.Exception ex)
         {
@@ -67,6 +68,12 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         }
         
         return response;
+    }
+
+    public void InboundToMongoDb(InboundLog log)
+    {
+        inboundLogService.CreateInboundLog(inboundLog);
+        Thread.Sleep(1000);
     }
 
     public async Task<FundsTransferResult<string>> Process(CreateNIPOutwardTransactionDto request)

@@ -72,6 +72,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             inboundLog.OutboundLogs = outboundLogs;
 
             await inboundLogService.CreateInboundLog(inboundLog);
+            Task.Run(() => LogToMongoDb(inboundLog));
         }
         catch (System.Exception ex)
         {
@@ -84,6 +85,12 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         }
         
         return response;
+    }
+
+    public void LogToMongoDb(InboundLog log)
+    {
+        inboundLogService.CreateInboundLog(inboundLog);
+        Thread.Sleep(1000);
     }
 
     public async Task<Result<NameEnquiryResponseDto>> ProcessNameEnquiry(NameEnquiryRequestDto request)
