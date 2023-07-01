@@ -82,6 +82,7 @@ public class DebitAccountRepository : IDebitAccountRepository
                             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
                             outboundLog.ResponseDetails = "no data returned for record";
                         }
+                        await connection.CloseAsync();
                     });
                     
                 }
