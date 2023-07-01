@@ -1,0 +1,112 @@
+
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, config) => 
+{
+    config.Enrich.FromLogContext()
+        .WriteTo.Console()
+        .ReadFrom.Configuration(context.Configuration);
+    
+});
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+builder.Services.AddHostedService<ConsumerBackgroundWorkerService>();
+builder.Services.AddDataDependencies(builder.Configuration);
+builder.Services.AddServiceDependencies(builder.Configuration);
+builder.Services.AddDebitConsumerServiceDependencies(builder.Configuration);
+builder.Services.AddSendToNIBBSProducerServiceDependencies(builder.Configuration);
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+ProducerConfig kafkaSendToNIBSSProducerConfig = builder.Configuration
+        .GetSection("KafkaSendToNIBSSProducerConfig:ClientConfig")
+        .Get<ProducerConfig>();
+
+builder.Services.AddHealthChecks()
+   .AddUrlGroup(new Uri    
+            ("https://www.google.com"),
+             name: "Internet Connectivity",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:VtellerProperties:BaseUrl").Value),
+             name: "VTeller",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:WalletFraudAnalyticsProperties:BaseUrl").Value),
+             name: "Wallet Fraud Analytics",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:WalletTransactionServiceProperties:BaseUrl").Value),
+             name: "Wallet to Wallet Transaction",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:ImalProperties:ImalInquiryServiceProperties:BaseUrl").Value),
+             name: "Imal Inquiry Service",
+             failureStatus: HealthStatus.Degraded)
+    .AddUrlGroup(new Uri    
+            (builder.Configuration.GetSection("AppSettings:ImalProperties:ImalTransactionServiceProperties:BaseUrl").Value),
+             name: "Imal Transaction Service",
+             failureStatus: HealthStatus.Degraded)
+    .AddSqlServer(
+             builder.Configuration.GetSection("AppSettings:SqlServerDbConnectionString").Value, 
+             name: "Sql Server Database",
+             failureStatus: HealthStatus.Degraded)
+    .AddMongoDb(builder.Configuration.GetSection("MongoDbSettings:ConnectionString").Value,
+            name: "Mongo Database",
+            failureStatus: HealthStatus.Degraded)
+    .AddOracle(builder.Configuration.GetSection("AppSettings:T24DbConnectionString").Value,
+            name: "T24 Oracle Database",
+            failureStatus: HealthStatus.Degraded)
+    .AddKafka(kafkaSendToNIBSSProducerConfig,
+            name: "Kafka Send To NIBSS Producer",
+            failureStatus: HealthStatus.Degraded);
+
+
+builder.Services.AddHealthChecksUI(opt =>    
+{    
+    opt.SetEvaluationTimeInSeconds(60); //time in seconds between check    
+    opt.MaximumHistoryEntriesPerEndpoint(60); //maximum history of checks    
+    opt.SetApiMaxActiveRequests(1); //api requests concurrency    
+    opt.AddHealthCheckEndpoint("default api", "/health"); //map health check api    
+})    
+.AddInMemoryStorage();  
+
+builder.Services.AddCors(p => p.AddPolicy("corsapp", builder =>
+    {
+        builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+    }));
+
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseSerilogRequestLogging();
+
+app.UseCors("corsapp");
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.MapHealthChecks("/health", new HealthCheckOptions()
+                {
+                    Predicate = _ => true,
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+                });
+
+app.Run();

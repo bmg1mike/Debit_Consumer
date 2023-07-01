@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sterling.NIPOutwardService.Domain", "Sterling.NIPOutwardService.Domain\Sterling.NIPOutwardService.Domain.csproj", "{4EC9C3F8-D748-4A92-83A7-4CE4DACE399B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sterling.NIPOutwardService.Data", "Sterling.NIPOutwardService.Data\Sterling.NIPOutwardService.Data.csproj", "{FCB48F3D-3910-4649-A31A-304E6D044344}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sterling.NIPOutwardService.API", "Sterling.NIPOutwardService.API\Sterling.NIPOutwardService.API.csproj", "{962AB3B1-A1B9-4ED2-8EF8-79258EF5843E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sterling.NIPOutwardService.Service", "Sterling.NIPOutwardService.Service\Sterling.NIPOutwardService.Service.csproj", "{707EB0B1-40CE-4590-9DFC-56CC5C39BC68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sterling.NIPOutwardService.DebitJob", "Sterling.NIPOutwardService.DebitJob\Sterling.NIPOutwardService.DebitJob.csproj", "{191F156B-B0C5-4B23-9036-3000BFAEF785}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4EC9C3F8-D748-4A92-83A7-4CE4DACE399B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EC9C3F8-D748-4A92-83A7-4CE4DACE399B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EC9C3F8-D748-4A92-83A7-4CE4DACE399B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EC9C3F8-D748-4A92-83A7-4CE4DACE399B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCB48F3D-3910-4649-A31A-304E6D044344}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCB48F3D-3910-4649-A31A-304E6D044344}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCB48F3D-3910-4649-A31A-304E6D044344}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCB48F3D-3910-4649-A31A-304E6D044344}.Release|Any CPU.Build.0 = Release|Any CPU
+		{962AB3B1-A1B9-4ED2-8EF8-79258EF5843E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{962AB3B1-A1B9-4ED2-8EF8-79258EF5843E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{962AB3B1-A1B9-4ED2-8EF8-79258EF5843E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{962AB3B1-A1B9-4ED2-8EF8-79258EF5843E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{707EB0B1-40CE-4590-9DFC-56CC5C39BC68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{707EB0B1-40CE-4590-9DFC-56CC5C39BC68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{707EB0B1-40CE-4590-9DFC-56CC5C39BC68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{707EB0B1-40CE-4590-9DFC-56CC5C39BC68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{191F156B-B0C5-4B23-9036-3000BFAEF785}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{191F156B-B0C5-4B23-9036-3000BFAEF785}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{191F156B-B0C5-4B23-9036-3000BFAEF785}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{191F156B-B0C5-4B23-9036-3000BFAEF785}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

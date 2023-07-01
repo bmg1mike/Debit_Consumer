@@ -1,0 +1,11 @@
+global using Sterling.NIPOutwardService.DebitJob;
+global using Confluent.Kafka;
+global using Sterling.NIPOutwardService.Domain.Config.Implementations;
+global using Sterling.NIPOutwardService.Domain.DataTransferObjects.Dtos;
+global using Sterling.NIPOutwardService.Service.Services.Interfaces;
+global using Sterling.NIPOutwardService.Data;
+global using Sterling.NIPOutwardService.Service;
+global using Serilog;
+global using Microsoft.Extensions.Options;
+global using Newtonsoft.Json;
+global using Sterling.NIPOutwardService.Service.Services.Implementations;
