@@ -160,8 +160,12 @@ public partial class NIPOutwardTransactionService : INIPOutwardTransactionServic
             response.ResponseTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = response.ResponseTime;
+            inboundLog.ImpactUniqueIdentifier = "Response Session ID";
+            inboundLog.ImpactUniqueidentifierValue = response.SessionID;
+            inboundLog.AlternateUniqueIdentifier = "Request Session ID";
+            inboundLog.AlternateUniqueidentifierValue = request.SessionID;
 
-            if(!string.IsNullOrEmpty(outboundLog.ExceptionDetails))
+            if (!string.IsNullOrEmpty(outboundLog.ExceptionDetails))
             {
                 inboundLog.OutboundLogs.Add(outboundLog);
             }

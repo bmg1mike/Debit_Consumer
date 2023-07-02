@@ -1,3 +1,5 @@
+using MongoDB.Bson;
+
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public class NIPOutwardDebitService : INIPOutwardDebitService
@@ -34,6 +36,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
         this.httpContextAccessor = httpContextAccessor;
     }
 
+
     public async Task<FundsTransferResult<string>> ProcessAndLog(CreateNIPOutwardTransactionDto request)
     {
         var response = new FundsTransferResult<string>();
@@ -45,8 +48,14 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             inboundLog.APIMethod = "FundsTransfer";
             inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
             inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
+            inboundLog.AlternateUniqueIdentifier = "Source Account Number";
+            inboundLog.AlternateUniqueidentifierValue = request.DebitAccountNumber;
 
             Log.Information($"Transfer Customer Request \t {JsonConvert.SerializeObject(request)}");
+
+            request.BeneficiaryBVN = string.IsNullOrEmpty(request.BeneficiaryBVN) ? "N/A" : request.BeneficiaryBVN;
+            request.OriginatorBVN = string.IsNullOrEmpty(request.OriginatorBVN) ? "N/A" : request.OriginatorBVN;
+
             response = await Process(request);
 
             response.RequestTime = requestTime;
@@ -55,6 +64,8 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             response.Content = string.Empty;
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = response.ResponseTime;
+            inboundLog.ImpactUniqueIdentifier = "Session ID";
+            inboundLog.ImpactUniqueidentifierValue = response.SessionID;
 
             Log.Information($"Transfer Customer Response \t {JsonConvert.SerializeObject(request)}");
             //await inboundLogService.CreateInboundLog(inboundLog);
@@ -107,13 +118,17 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             }
             
         }
-       
-        
+
+        Log.Information($"Creating Transaction");
+
         var createTransactionResult = await CreateTransaction(request);
+
+        Log.Information($"CreateTransactionResult: {JsonConvert.SerializeObject(createTransactionResult)}");
         
         if(!createTransactionResult.IsSuccess)
         {
             response = mapper.Map<FundsTransferResult<string>>(createTransactionResult);
+            Log.Information($"{JsonConvert.SerializeObject(response)}");
             return response;
         }
 
@@ -131,6 +146,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
 
         if(request.PriorityLevel == PriorityLevel.PriorityLevel1)
         {
+            Log.Information("Processing Transaction For Priority 1");
             if(request.IsImalTransaction)
             {
                 response =  await nipOutwardImalDebitProcessorService.ProcessTransaction(nipOutwardTransaction);

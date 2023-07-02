@@ -473,6 +473,8 @@ public class VTellerService : IVtellerService
             EncryptedDto encryptedResponse = await CallVTeller(encryptedRequest, checkSum);
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
 
+            Log.Information($"AesSecretKey : {appSettings.AesSecretKey} \t AesInitializationVector : {appSettings.AesInitializationVector}, \t checkSum : {checkSum} \t ");
+
             string decryptedResponse = encryption.DecryptAes(encryptedResponse.Data, appSettings.AesSecretKey, appSettings.AesInitializationVector);
             outboundLog.ResponseDetails = decryptedResponse;
 
