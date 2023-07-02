@@ -31,6 +31,7 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
 
         try
         {
+            Log.Information("Pushing Transaction To Kafka");
             await ProduceAsync(request);
             result.IsSuccess = true;
             result.Message = "Transaction has been pushed for processing";
@@ -54,10 +55,12 @@ public class NIPOutwardDebitProducerService : INIPOutwardDebitProducerService
             result.ErrorMessage = "Internal Server Error";
             outboundLog.ExceptionDetails = $@"Error thrown, raw request: {request} 
             Exception Details: {ex.Message} {ex.StackTrace}";
+            Log.Error(ex,ex.Message);
         }
         outboundLog.ResponseDetails = $"Successfully published transaction: {result.IsSuccess}";
         outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
         outboundLogs.Add(outboundLog);
+        
         return result;
     }
 
