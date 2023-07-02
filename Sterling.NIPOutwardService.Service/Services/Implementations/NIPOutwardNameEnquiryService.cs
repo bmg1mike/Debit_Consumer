@@ -1,3 +1,5 @@
+using Serilog;
+
 namespace Sterling.NIPOutwardService.Service.Services.Implementations;
 
 public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
@@ -62,7 +64,10 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
             inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
 
+            Log.Information("Before Calling Process Name Enquiry");
             response = await ProcessNameEnquiry(request);
+            Log.Information("After Calling Process Name Enquiry");
+
 
             response.SessionID = request.SessionID;
             response.RequestTime = requestTime;
@@ -71,7 +76,7 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             inboundLog.ResponseDateTime = response.ResponseTime;
             inboundLog.OutboundLogs = outboundLogs;
 
-            await inboundLogService.CreateInboundLog(inboundLog);
+            //await inboundLogService.CreateInboundLog(inboundLog);
             Task.Run(() => LogToMongoDb(inboundLog));
         }
         catch (System.Exception ex)
@@ -256,7 +261,10 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             NIPInterfaceClient nipClient = new NIPInterfaceClient(binding, new EndpointAddress(nibssNipServiceProperties.NIPNIBSSService));
            
             string str = ssm.Encrypt(request);
+            Log.Information($"Nibbs Name Enquiry Request \n {str} - {request}");
             xml = nipClient.nameenquirysingleitem(str);
+
+            Log.Information($"Nibbs Name Enquiry Response \n {xml}");
             
             outboundLog.ResponseDateTime = DateTime.UtcNow.AddHours(1);
             ok = true;
