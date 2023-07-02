@@ -74,6 +74,10 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             response.ResponseTime = DateTime.UtcNow.AddHours(1);
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = response.ResponseTime;
+            inboundLog.ImpactUniqueIdentifier = "Session ID";
+            inboundLog.ImpactUniqueidentifierValue = response.SessionID;
+            inboundLog.AlternateUniqueIdentifier = "Account Number";
+            inboundLog.AlternateUniqueidentifierValue = request.AccountNumber;
             inboundLog.OutboundLogs = outboundLogs;
 
             //await inboundLogService.CreateInboundLog(inboundLog);
