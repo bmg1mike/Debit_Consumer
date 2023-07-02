@@ -46,6 +46,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             inboundLog.RequestSystem = httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
             inboundLog.RequestDetails = JsonConvert.SerializeObject(request);
 
+            Log.Information($"Transfer Customer Request \t {JsonConvert.SerializeObject(request)}");
             response = await Process(request);
 
             response.RequestTime = requestTime;
@@ -54,6 +55,8 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             response.Content = string.Empty;
             inboundLog.ResponseDetails = JsonConvert.SerializeObject(response);
             inboundLog.ResponseDateTime = response.ResponseTime;
+
+            Log.Information($"Transfer Customer Response \t {JsonConvert.SerializeObject(request)}");
             //await inboundLogService.CreateInboundLog(inboundLog);
             Task.Run(() => InboundToMongoDb(inboundLog));
         }
@@ -80,20 +83,25 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
     {
         var response = new FundsTransferResult<string>();
 
+        Log.Information($"Validating Transfer request");
         var validationResult = ValidateCreateNIPOutwardTransactionDto(request);
+        
 
         if(!validationResult.IsSuccess)
         {
             response = mapper.Map<FundsTransferResult<string>>(validationResult);
+            Log.Information($"Transfer Validation Failed");
             return response;
         }
 
         if(request.IsWalletTransaction)
         {
+            Log.Information("Starting Wallet Transaction");
              var callWalletResult = await CallWalletService(request);
 
             if(!callWalletResult.IsSuccess)
             {
+                Log.Information("Wallet Transaction Failed");
                 response = mapper.Map<FundsTransferResult<string>>(callWalletResult);
                 return response;
             }

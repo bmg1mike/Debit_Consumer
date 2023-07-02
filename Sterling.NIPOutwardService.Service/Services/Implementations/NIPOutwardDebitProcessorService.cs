@@ -72,8 +72,10 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
 
         var response = new FundsTransferResult<string>();
         
+        Log.Information("Entered the ProcessTransaction method");
+
         response = await DebitAccount(nipOutwardTransaction);
-        
+        Log.Information($"Debit Response \t {JsonConvert.SerializeObject(response)}");
         response.Content = string.Empty;
 
         if(!response.IsSuccess && string.IsNullOrWhiteSpace(response.ErrorMessage))
@@ -94,7 +96,11 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
         outboundLog.APIMethod = $"{this.ToString()}.{nameof(this.DebitAccount)}";
         try
         {
+            Log.Information($"Starting Check Look Up ");
+
             var checkLookupResult = await nipOutwardDebitLookupService.FindOrCreate(nipOutwardTransaction.ID);
+
+            Log.Information($"Check Look Up Result \t {checkLookupResult}");
             outboundLogs.Add(nipOutwardDebitLookupService.GetOutboundLog());
 
             if(!checkLookupResult.IsSuccess)
@@ -150,6 +156,7 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             }
 
             var HasConcessionPerTransPerday = false;
+            Log.Information($"Getting GetConcessionLimitByDebitAccount");
             var concessionTransactionAmountLimit = await transactionAmountLimitService.GetConcessionLimitByDebitAccount(nipOutwardTransaction.DebitAccountNumber);
             
             outboundLogs.Add(transactionAmountLimitService.GetOutboundLog());
@@ -187,7 +194,9 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 return mapper.Map<FundsTransferResult<string>>(computeVatAndFeeResult);
             }
 
+            Log.Information("Getting Usable Balance");
             var usableBalance = getDebitAccountDetailsResult.Content.DebitAccountDetails.UsableBalance;
+
             var totalTransactionAmount = nipOutwardTransaction.Amount + vTellerTransactionDto.feecharge + vTellerTransactionDto.vat;
 
             if(totalTransactionAmount >  usableBalance)
@@ -207,9 +216,12 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
                 return result;
             }
 
+            Log.Information("Debiting Customer");
+
             var debitAccountResult = await DebitAccount(vTellerTransactionDto, nipOutwardTransaction, 
             concessionTransactionAmountLimit, CheckIfDateIsHolidayResult.Content, customerStatusCode, customerClass);
             
+            Log.Information($"Debit Account Result \t {JsonConvert.SerializeObject(debitAccountResult)}");
             if(debitAccountResult.IsSuccess)
             {
                 await nipOutwardSendToNIBSSProducerService.PublishTransaction(debitAccountResult.Content);
