@@ -1,4 +1,5 @@
 using Oracle.ManagedDataAccess.Client;
+using Serilog;
 
 namespace Sterling.NIPOutwardService.Data.Repositories.Implementations;
 
@@ -91,6 +92,7 @@ public class DebitAccountRepository : IDebitAccountRepository
                     accountDetails = null;
                     outboundLog.ExceptionDetails = outboundLog.ExceptionDetails + 
                     "\r\n" + $@"Account number: {AccountNumber} Exception Details: {ex.Message} {ex.StackTrace}";
+                    Log.Error(ex,ex.Message);
                 }
                             
             }
