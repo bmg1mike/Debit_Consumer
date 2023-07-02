@@ -11,7 +11,11 @@ public class NIPOutwardNameEnquiryRepository:INIPOutwardNameEnquiryRepository
     public async Task Create(NIPOutwardNameEnquiry request)
     {
         await dbContext.tbl_NIPOutwardNameEnquiry.AddAsync(request);
-        await dbContext.SaveChangesAsync(); 
+        if (await dbContext.SaveChangesAsync() > 0)
+        {
+            Log.Information("Nip Outward Name Enquiry was saved to the Db successfully");
+        }
+        // await dbContext.SaveChangesAsync(); 
     }
 
     public async Task<NIPOutwardNameEnquiry?> Get(string DestinationInstitutionCode, string AccountNumber)

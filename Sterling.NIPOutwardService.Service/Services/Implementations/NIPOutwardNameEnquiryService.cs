@@ -100,26 +100,40 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
 
     public async Task<Result<NameEnquiryResponseDto>> ProcessNameEnquiry(NameEnquiryRequestDto request)
     {
+        Log.Information("Entered ProcessNameEnquiry Method");
         var validationResult = ValidateNameEnquiryResponseDto(request);
 
         if(!validationResult.IsSuccess)
         {
+            Log.Information("Request Validation failed for ProcessNameEnquiry");
             return validationResult;
         }
+
+        Log.Information("Request Validation Succeeded for ProcessNameEnquiry");
 
         return await NameEnquiry(request);;
     }
 
     public async Task<Result<NameEnquiryResponseDto>> NameEnquiry(NameEnquiryRequestDto request)
     {
+        Log.Information("Entered NameEnquiry Method");
         var response = new Result<NameEnquiryResponseDto>();
 
         var nameEnquiryDetailsResult = new NIPOutwardNameEnquiry();
         await retryPolicy.ExecuteAsync(async () =>
         {
+            Log.Information("Checking the MSSQL Db For Name Enquiry");
             
             nameEnquiryDetailsResult = await nipOutwardNameEnquiryRepository
             .Get(request.DestinationInstitutionCode, request.AccountNumber);
+
+            if (nameEnquiryDetailsResult is not null)
+            {
+                Log.Information($"MSSQL Name Enquiry Response : \n {JsonConvert.SerializeObject(nameEnquiryDetailsResult)}");
+            }
+
+            Log.Information("MSSQL Db name enquiry returned null");
+            
         });
 
         
@@ -140,6 +154,8 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
             response.Message = "Success";
             response.IsSuccess = true;
 
+            Log.Information("NameEnquiry was successful");
+
             return response;
         }
         
@@ -150,7 +166,8 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         {
             response.Message = "Name enquiry failed";
             response.IsSuccess = false;
-           
+
+           Log.Information("Name Enquiry failed");
         }
         else
         {
@@ -170,6 +187,8 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
                     ChannelCode = nameEnquiryResponse.ChannelCode,
                     DateAdded = DateTime.UtcNow.AddHours(1),
                 };
+
+                Log.Information($"Nip Name Enquiry Json Response \t {JsonConvert.SerializeObject(nipOutwardNameEnquiry)}");
 
                 try
                 {
@@ -236,6 +255,8 @@ public class NIPOutwardNameEnquiryService : INIPOutwardNameEnquiryService
         rqt.Append("<ChannelCode>" + request.ChannelCode + "</ChannelCode>");
         rqt.Append("<AccountNumber>" + request.AccountNumber + "</AccountNumber>");
         rqt.Append("</NESingleRequest>");
+
+        Log.Information($"Name Enquiry Nibbs Request \t {rqt.ToString()}");
     }
     public bool sendRequest()
     {
