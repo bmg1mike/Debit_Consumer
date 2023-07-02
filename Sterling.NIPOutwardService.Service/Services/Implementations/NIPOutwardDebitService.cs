@@ -121,7 +121,7 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
 
         nipOutwardTransaction = generateFundsTransferSessionIdResult.Content;
 
-        if(request.PriorityLevel == 1)
+        if(request.PriorityLevel == PriorityLevel.PriorityLevel1)
         {
             if(request.IsImalTransaction)
             {

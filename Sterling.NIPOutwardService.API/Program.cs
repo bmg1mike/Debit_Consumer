@@ -122,10 +122,10 @@ builder.Services.AddApiVersioning(x =>
 
 builder.Services.AddHealthChecksUI(opt =>    
 {    
-    opt.SetEvaluationTimeInSeconds(60); //time in seconds between check    
-    opt.MaximumHistoryEntriesPerEndpoint(60); //maximum history of checks    
+    opt.SetEvaluationTimeInSeconds(1800); //time in seconds between check    
+    opt.MaximumHistoryEntriesPerEndpoint(50); //maximum history of checks    
     opt.SetApiMaxActiveRequests(1); //api requests concurrency    
-    opt.AddHealthCheckEndpoint("default api", "/health"); //map health check api    
+    opt.AddHealthCheckEndpoint("default api", "http://localhost:80/health"); //map health check api    
 })    
 .AddInMemoryStorage();  
 

@@ -103,10 +103,10 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         .LessThan(int.MaxValue);
 
         RuleFor(x => x.PriorityLevel)
+        .IsInEnum()
         .NotNull()
         .NotEmpty()
-        .LessThan(255)
-        .GreaterThan(0);
+        .NotEqual(PriorityLevel.None);
         
     }
 }
