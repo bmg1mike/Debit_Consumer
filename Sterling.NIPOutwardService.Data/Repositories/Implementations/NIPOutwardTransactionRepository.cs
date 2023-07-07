@@ -20,7 +20,7 @@ public partial class NIPOutwardTransactionRepository : INIPOutwardTransactionRep
     public async Task<NIPOutwardTransaction?> GetBySessionID(string SessionID)
     {
         return await dbContext.tbl_NIPOutwardTransactions
-        .Where(e => e.SessionID == SessionID).FirstOrDefaultAsync();
+        .Where(e => e.SessionID == SessionID || e.NameEnquirySessionID == SessionID).FirstOrDefaultAsync();
     }
 
     public async Task<int> Update(NIPOutwardTransaction request)
