@@ -72,7 +72,7 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         RuleFor(x => x.DebitAccountNumber)
         .NotNull()
         .NotEmpty()
-        .MaximumLength(11);
+        .MaximumLength(20);
 
         RuleFor(x => x.BeneficiaryBankCode)
         .NotNull()
