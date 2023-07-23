@@ -87,15 +87,15 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         //RuleFor(x => x.BeneficiaryBVN)
         //.Length(11);
 
-        RuleFor(x => x.BeneficiaryKYCLevel)
-        .NotNull()
-        .NotEmpty()
-        .MaximumLength(10);
+        // RuleFor(x => x.BeneficiaryKYCLevel)
+        // .NotNull()
+        // .NotEmpty()
+        // .MaximumLength(10);
 
-        RuleFor(x => x.OriginatorKYCLevel)
-        .NotNull()
-        .NotEmpty()
-        .MaximumLength(10);
+        // RuleFor(x => x.OriginatorKYCLevel)
+        // .NotNull()
+        // .NotEmpty()
+        // .MaximumLength(10);
 
         RuleFor(x => x.AppId)
         .NotNull()
