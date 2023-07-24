@@ -59,6 +59,8 @@ public class NIPOutwardDebitService : INIPOutwardDebitService
             response = await Process(request);
 
             response.RequestTime = requestTime;
+            if(!string.IsNullOrWhiteSpace(request.PaymentReference) && request.PaymentReference.Length > 100)
+                request.PaymentReference = request.PaymentReference[..100];
             response.PaymentReference = request.PaymentReference;
             response.ResponseTime = DateTime.UtcNow.AddHours(1);
             response.Content = string.Empty;

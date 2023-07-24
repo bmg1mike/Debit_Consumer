@@ -17,10 +17,10 @@ public partial class CreateNIPOutwardTransactionDtoValidator : AbstractValidator
         RuleFor(x => x.ChannelCode)
         .NotNull();
 
-        RuleFor(x => x.PaymentReference)
-        .NotNull()
-        .NotEmpty()
-        .MaximumLength(100);
+        // RuleFor(x => x.PaymentReference)
+        // .NotNull()
+        // .NotEmpty()
+        // .MaximumLength(100);
 
         RuleFor(x => x.Amount)
         .NotNull()
