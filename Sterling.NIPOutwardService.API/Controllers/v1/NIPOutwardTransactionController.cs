@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Sterling.NIPOutwardService.API.Controllers.v1;
 
-[Authorize(AuthenticationSchemes = "Bearer")]
+// [Authorize(AuthenticationSchemes = "Bearer")]
 public partial class NIPOutwardTransactionController : BaseController 
 {
     private readonly INIPOutwardDebitService nipOutwardDebitService;

@@ -1113,7 +1113,6 @@ public class NIPOutwardDebitProcessorService : INIPOutwardDebitProcessorService
             Exception Details: {ex.Message} {ex.StackTrace}";
             outboundLogs.Add(outboundLog);
             return result;
-            
         }
         
     }
